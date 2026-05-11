@@ -127,6 +127,6 @@ A camada `database.py` inclui wrappers `_PgConn`/`_PgCursor` que fazem o psycopg
 
 ## Status
 
-**Em produção** com empresa piloto desde 2024. Todos os módulos da tabela acima estão completos e funcionando.
+Em produção com empresa piloto. Em desenvolvimento ativo desde março de 2026.
 
-Desenvolvido por [Lucas Piau](https://linkedin.com/in/lucaspiausantana) · [Piau Gestão em Saúde](https://github.com/seu-usuario)
+Desenvolvido por [Lucas Piau](https://linkedin.com/in/lucaspiausantana) · [Piau Gestão em Saúde](https://github.com/Piaulucas)
