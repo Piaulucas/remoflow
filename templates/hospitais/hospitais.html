@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Unidades / Hospitais</h1>
+    <p>Gerencie as unidades de origem e destino das remoções</p>
+  </div>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUnidade"
+          onclick="abrirNovo()">
+    <i class="bi bi-plus-lg me-1"></i> Nova Unidade
+  </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label">Cidade</label>
+        <select name="cidade" class="form-select form-select-sm">
+          <option value="">Todas as cidades</option>
+          {% for c in cidades %}
+          <option value="{{ c }}" {% if filtro_cidade == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select name="ativo" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="1" {% if filtro_ativo == '1' %}selected{% endif %}>Ativo</option>
+          <option value="0" {% if filtro_ativo == '0' %}selected{% endif %}>Inativo</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-funnel me-1"></i>Filtrar
+        </button>
+        <a href="{{ url_for('hospitais.hospitais') }}" class="btn btn-sm btn-outline-secondary ms-1">Limpar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabela -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-hospital me-2"></i>Unidades cadastradas</span>
+    <span class="badge bg-primary">{{ hospitais|length }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Sigla</th>
+          <th>Cidade</th>
+          <th>Status</th>
+          <th style="width:120px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in hospitais %}
+        <tr class="{% if not h.ativo %}text-muted{% endif %}">
+          <td>
+            {% if not h.ativo %}<s>{{ h.nome }}</s>{% else %}{{ h.nome }}{% endif %}
+          </td>
+          <td>{{ h.sigla or '—' }}</td>
+          <td>{{ h.cidade or '—' }}</td>
+          <td>
+            {% if h.ativo %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Ativo</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inativo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2 me-1"
+                    onclick="abrirEditar({{ h.id }}, '{{ h.nome|replace("'", "\\'") }}', '{{ h.sigla or '' }}', '{{ h.cidade|replace("'", "\\'") }}')"
+                    data-bs-toggle="modal" data-bs-target="#modalUnidade"
+                    title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="post" action="{{ url_for('hospitais.toggle_hospital', id=h.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm py-0 px-2 {% if h.ativo %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                      title="{{ 'Inativar' if h.ativo else 'Ativar' }}">
+                <i class="bi {% if h.ativo %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">Nenhuma unidade encontrada</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Cadastro / Edição -->
+<div class="modal fade" id="modalUnidade" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" id="formUnidade">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitulo">Nova Unidade</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nome completo <span class="text-danger">*</span></label>
+            <input type="text" name="nome" id="inputNome" class="form-control"
+                   placeholder="Nome da unidade" required>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Sigla</label>
+              <input type="text" name="sigla" id="inputSigla" class="form-control"
+                     placeholder="Ex: HAN" maxlength="20">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Cidade <span class="text-danger">*</span></label>
+              <input type="text" name="cidade" id="inputCidade" class="form-control"
+                     list="cidades-list" placeholder="Cidade" required>
+              <datalist id="cidades-list">
+                {% for c in cidades %}
+                <option value="{{ c }}">
+                {% endfor %}
+              </datalist>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Salvar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function abrirNovo() {
+    document.getElementById('modalTitulo').textContent = 'Nova Unidade';
+    document.getElementById('formUnidade').action = "{{ url_for('hospitais.novo_hospital') }}";
+    document.getElementById('inputNome').value   = '';
+    document.getElementById('inputSigla').value  = '';
+    document.getElementById('inputCidade').value = '';
+  }
+
+  function abrirEditar(id, nome, sigla, cidade) {
+    document.getElementById('modalTitulo').textContent = 'Editar Unidade';
+    document.getElementById('formUnidade').action = '/hospitais/editar/' + id;
+    document.getElementById('inputNome').value   = nome;
+    document.getElementById('inputSigla').value  = sigla;
+    document.getElementById('inputCidade').value = cidade;
+  }
+
+  // Maiúsculas em tempo real nos campos do modal
+  function toUpper(el) {
+    const s = el.selectionStart, e = el.selectionEnd;
+    el.value = el.value.toUpperCase();
+    el.setSelectionRange(s, e);
+  }
+  ['inputNome', 'inputSigla', 'inputCidade'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() { toUpper(this); });
+  });
+</script>
+{% endblock %}

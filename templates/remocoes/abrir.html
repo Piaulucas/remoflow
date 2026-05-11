@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <h1>Abrir Remoção</h1>
+  <p>Preencha os dados do acionamento</p>
+</div>
+
+<form method="post" action="{{ url_for('remocoes.abrir_remocao') }}" id="formAbrir">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <!-- Dados Gerais -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="section-title"><i class="bi bi-info-circle me-1"></i>Dados Gerais</div>
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label">Data</label>
+          <input type="date" name="data" class="form-control" value="{{ remocao.data if remocao else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nome do Paciente</label>
+          <input type="text" name="nome_paciente" id="nome_paciente" class="form-control" value="{{ remocao.nome_paciente if remocao else '' }}" placeholder="Nome completo">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Idade</label>
+          <div class="input-group">
+            <input type="number" name="idade" class="form-control" value="{{ remocao.idade if remocao else '' }}" min="0" max="130" placeholder="0">
+            <select name="idade_unidade" class="form-select" style="max-width: 100px;">
+              <option value="anos" {% if remocao and remocao.idade_unidade == 'anos' %}selected{% elif not remocao %}selected{% endif %}>anos</option>
+              <option value="meses" {% if remocao and remocao.idade_unidade == 'meses' %}selected{% endif %}>meses</option>
+              <option value="dias" {% if remocao and remocao.idade_unidade == 'dias' %}selected{% endif %}>dias</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">COVID</label>
+          <select name="covid" class="form-select">
+            <option value="">—</option>
+            <option value="Sim" {% if remocao and remocao.covid == 'Sim' %}selected{% endif %}>Sim</option>
+            <option value="Não" {% if remocao and remocao.covid == 'Não' %}selected{% endif %}>Não</option>
+          </select>
+        </div>
+      </div>
+      <div class="row g-3 mt-0">
+        <div class="col-md-3">
+          <label class="form-label">Ambulância</label>
+          <input type="text" name="ambulancia" id="ambulancia" class="form-control" list="ambulancias-list"
+                 value="{{ remocao.ambulancia if remocao else '' }}" placeholder="Placa / ID" autocomplete="off">
+          <datalist id="ambulancias-list">
+            {% for a in ambulancias %}
+            <option value="{{ a }}">
+            {% endfor %}
+          </datalist>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unidades -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="section-title"><i class="bi bi-hospital me-1"></i>Unidades</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Unidade de Origem</label>
+          <div class="input-group">
+            <select name="unidade_origem" id="unidade_origem" class="form-select">
+              <option value="">Selecione...</option>
+              {% for h in hospitais %}
+              <option value="{{ h }}" {% if remocao and remocao.unidade_origem == h %}selected{% endif %}>{{ h }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="abrirModalUnidade('unidade_origem')">＋ Nova unidade</button>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Unidade de Destino</label>
+          <div class="input-group">
+            <select name="unidade_destino" id="unidade_destino" class="form-select">
+              <option value="">Selecione...</option>
+              {% for h in hospitais %}
+              <option value="{{ h }}" {% if remocao and remocao.unidade_destino == h %}selected{% endif %}>{{ h }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="abrirModalUnidade('unidade_destino')">＋ Nova unidade</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horários e KM -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="section-title"><i class="bi bi-clock me-1"></i>Horários e Quilometragem</div>
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label">Hora de Saída</label>
+          <input type="time" name="hora_saida" class="form-control" value="{{ remocao.hora_saida if remocao else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">KM Inicial</label>
+          <input type="number" name="km_inicial" class="form-control" step="1" value="{{ remocao.km_inicial|int if remocao and remocao.km_inicial else '' }}" placeholder="0">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equipe -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="section-title"><i class="bi bi-people me-1"></i>Equipe</div>
+      <div class="row g-3">
+        <!-- Médico -->
+        <div class="col-md-4">
+          <label class="form-label">Médico</label>
+          <select name="medico" id="medico" class="form-select">
+            <option value="">Selecione...</option>
+            {% for m in medicos %}
+            <option value="{{ m }}" {% if remocao and remocao.medico == m %}selected{% endif %}>{{ m }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Equipe</label>
+          <select name="medico_equipe" class="form-select">
+            <option value="">—</option>
+            {% for e in equipes %}
+            <option value="{{ e }}" {% if remocao and remocao.medico_equipe == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Enfermeiro -->
+        <div class="col-md-4">
+          <label class="form-label">Enfermeiro</label>
+          <select name="enfermeiro" id="enfermeiro" class="form-select">
+            <option value="">Selecione...</option>
+            {% for e in enfermeiros %}
+            <option value="{{ e }}" {% if remocao and remocao.enfermeiro == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Equipe</label>
+          <select name="enfermeiro_equipe" class="form-select">
+            <option value="">—</option>
+            {% for e in equipes %}
+            <option value="{{ e }}" {% if remocao and remocao.enfermeiro_equipe == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Condutor -->
+        <div class="col-md-4">
+          <label class="form-label">Condutor</label>
+          <select name="condutor" id="condutor" class="form-select">
+            <option value="">Selecione...</option>
+            {% for c in condutores %}
+            <option value="{{ c }}" {% if remocao and remocao.condutor == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Equipe</label>
+          <select name="condutor_equipe" class="form-select">
+            <option value="">—</option>
+            {% for e in equipes %}
+            <option value="{{ e }}" {% if remocao and remocao.condutor_equipe == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <!-- Condutor Apoio -->
+        <div class="col-md-4">
+          <label class="form-label">Condutor Apoio</label>
+          <select name="condutor_apoio" id="condutor_apoio" class="form-select">
+            <option value="">Selecione...</option>
+            {% for c in condutores %}
+            <option value="{{ c }}" {% if remocao and remocao.condutor_apoio == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Equipe</label>
+          <select name="condutor_apoio_equipe" class="form-select">
+            <option value="">—</option>
+            {% for e in equipes %}
+            <option value="{{ e }}" {% if remocao and remocao.condutor_apoio_equipe == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Responsável -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Responsável pelo Acionamento</label>
+          <input type="text" class="form-control" value="{{ session.get('usuario_nome', '') }}" readonly>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 justify-content-end">
+    <a href="{{ url_for('remocoes.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-warning px-4">
+      <i class="bi bi-broadcast me-1"></i>Abrir Remoção
+    </button>
+  </div>
+</form>
+
+<!-- Modal Nova Unidade (AJAX) -->
+<div class="modal fade" id="modalNovaUnidade" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nova Unidade</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Nome completo <span class="text-danger">*</span></label>
+          <input type="text" id="novaUnidadeNome" class="form-control" placeholder="Nome da unidade">
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Sigla</label>
+            <input type="text" id="novaUnidadeSigla" class="form-control" placeholder="Ex: HAN" maxlength="20">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Cidade <span class="text-danger">*</span></label>
+            <input type="text" id="novaUnidadeCidade" class="form-control" placeholder="Cidade">
+          </div>
+        </div>
+        <div id="novaUnidadeErro" class="text-danger mt-2 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="salvarNovaUnidade()">
+          <i class="bi bi-check-lg me-1"></i>Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+  const tsOpts = { placeholder: 'Digite para buscar...', allowEmptyOption: true, maxOptions: 50 };
+
+  function safeTomSelect(id) {
+    const el = document.getElementById(id);
+    if (el) return new TomSelect(el, tsOpts);
+    return null;
+  }
+
+  const tsUnidadeOrigem  = safeTomSelect('unidade_origem');
+  const tsUnidadeDestino = safeTomSelect('unidade_destino');
+  safeTomSelect('medico');
+  safeTomSelect('enfermeiro');
+  safeTomSelect('condutor');
+  safeTomSelect('condutor_apoio');
+
+  function toUpper(el) {
+    const s = el.selectionStart, e = el.selectionEnd;
+    el.value = el.value.toUpperCase();
+    el.setSelectionRange(s, e);
+  }
+  ['nome_paciente', 'ambulancia'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { toUpper(this); });
+  });
+
+  let _targetSelect = null;
+
+  function abrirModalUnidade(selectId) {
+    _targetSelect = selectId;
+    document.getElementById('novaUnidadeNome').value = '';
+    document.getElementById('novaUnidadeSigla').value = '';
+    document.getElementById('novaUnidadeCidade').value = '';
+    document.getElementById('novaUnidadeErro').classList.add('d-none');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalNovaUnidade')).show();
+  }
+
+  async function salvarNovaUnidade() {
+    const nome   = document.getElementById('novaUnidadeNome').value.trim();
+    const sigla  = document.getElementById('novaUnidadeSigla').value.trim();
+    const cidade = document.getElementById('novaUnidadeCidade').value.trim();
+    const erroEl = document.getElementById('novaUnidadeErro');
+    if (!nome || !cidade) {
+      erroEl.textContent = 'Nome e cidade são obrigatórios.';
+      erroEl.classList.remove('d-none');
+      return;
+    }
+    const fd = new FormData();
+    fd.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+    fd.append('nome', nome);
+    fd.append('sigla', sigla);
+    fd.append('cidade', cidade);
+    try {
+      const resp = await fetch('/hospitais/novo_ajax', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (!data.success) {
+        erroEl.textContent = data.error || 'Erro ao salvar.';
+        erroEl.classList.remove('d-none');
+        return;
+      }
+      [tsUnidadeOrigem, tsUnidadeDestino].forEach(function(ts) {
+        if (ts) { ts.addOption({ value: data.value, text: data.text }); ts.refreshOptions(false); }
+      });
+      if (_targetSelect === 'unidade_origem' && tsUnidadeOrigem) tsUnidadeOrigem.setValue(data.value);
+      else if (_targetSelect === 'unidade_destino' && tsUnidadeDestino) tsUnidadeDestino.setValue(data.value);
+      bootstrap.Modal.getInstance(document.getElementById('modalNovaUnidade')).hide();
+    } catch (err) {
+      erroEl.textContent = 'Erro de conexão.';
+      erroEl.classList.remove('d-none');
+    }
+  }
+
+  ['novaUnidadeNome', 'novaUnidadeSigla', 'novaUnidadeCidade'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { toUpper(this); });
+  });
+</script>
+{% endblock %}

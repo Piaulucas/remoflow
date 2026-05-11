@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-shield-lock me-2"></i>Usuários</h1>
+    <p>Gerencie os usuários com acesso ao sistema</p>
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+    <i class="bi bi-plus-lg me-1"></i>Novo Usuário
+  </button>
+</div>
+
+{% if erro %}
+<div class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+  <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ erro }}
+  <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people-fill me-2"></i>Usuários Cadastrados</span>
+    <span class="text-muted" style="font-size:0.8rem;font-weight:400">{{ usuarios|length }} registro(s)</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>CPF</th>
+          <th>Perfil</th>
+          <th>Primeiro Acesso</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set cores_perfil = {'Admin': 'danger', 'Recepcionista': 'primary', 'Faturamento': 'warning', 'Financeiro': 'success'} %}
+        {% for u in usuarios %}
+        <tr>
+          <td class="fw-medium">{{ u.nome }}</td>
+          <td class="font-monospace" style="font-size:0.8rem;">{{ u.cpf }}</td>
+          <td>
+            <span class="badge bg-{{ cores_perfil.get(u.perfil, 'secondary') }} bg-opacity-10
+                         text-{{ cores_perfil.get(u.perfil, 'secondary') }}"
+                  style="font-size:0.75rem;font-weight:600;padding:3px 8px;border-radius:6px;">
+              {{ u.perfil }}
+            </span>
+          </td>
+          <td>
+            {% if u.primeiro_acesso %}
+              <span class="badge bg-warning bg-opacity-15 text-warning" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;">
+                <i class="bi bi-exclamation-circle me-1"></i>Pendente
+              </span>
+            {% else %}
+              <span class="text-muted" style="font-size:0.8rem;">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.ativo %}
+              <span class="badge bg-success bg-opacity-10 text-success" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;">Ativo</span>
+            {% else %}
+              <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;">Inativo</span>
+            {% endif %}
+          </td>
+          <td class="text-end" style="white-space:nowrap">
+            <a href="{{ url_for('admin.admin_editar_usuario', id=u.id) }}"
+               class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{{ url_for('admin.admin_reset_senha', id=u.id) }}" class="d-inline"
+                  onsubmit="return confirm('Resetar senha de {{ u.nome }} para 123456?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2 me-1" title="Resetar senha">
+                <i class="bi bi-key"></i>
+              </button>
+            </form>
+            {% if u.id != session.get('usuario_id') %}
+            <form method="post" action="{{ url_for('admin.admin_toggle_usuario', id=u.id) }}" class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="btn btn-sm py-0 px-2 {% if u.ativo %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                      title="{% if u.ativo %}Inativar{% else %}Ativar{% endif %}">
+                <i class="bi bi-{% if u.ativo %}pause-circle{% else %}play-circle{% endif %}"></i>
+              </button>
+            </form>
+            {% if u.perfil != 'SuperAdmin' %}
+            <form method="post" action="{{ url_for('admin.admin_excluir_usuario', id=u.id) }}" class="d-inline"
+                  onsubmit="return confirm('Excluir usuário {{ u.nome }}? Esta ação não pode ser desfeita.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Excluir usuário">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+            {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal Novo Usuário -->
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Novo Usuário</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nome completo <span class="text-danger">*</span></label>
+            <input type="text" name="nome" class="form-control" placeholder="Nome do usuário" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">CPF <span class="text-danger">*</span></label>
+            <input type="text" name="cpf" id="cpfInput" class="form-control"
+                   placeholder="Somente números" inputmode="numeric" maxlength="11" required>
+            <div class="form-text">Usado como login. Somente números, sem pontos ou traços.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Perfil <span class="text-danger">*</span></label>
+            <select name="perfil" class="form-select" required>
+              <option value="">Selecione...</option>
+              {% for p in perfis %}
+              <option value="{{ p }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="alert alert-info py-2 mb-0" style="font-size:0.8rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            A senha inicial será <strong>123456</strong>. O usuário será solicitado a trocá-la no primeiro acesso.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Cadastrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('cpfInput').addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '');
+  });
+
+  {% if erro %}
+  new bootstrap.Modal(document.getElementById('modalNovoUsuario')).show();
+  {% endif %}
+</script>
+{% endblock %}

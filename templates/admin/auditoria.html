@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block content %}
+{% set _labels = {
+  'remocao_criada':  ('Remoção criada',  'success'),
+  'remocao_editada': ('Remoção editada', 'warning'),
+  'remocao_excluida':('Remoção excluída','danger'),
+  'reset_senha':     ('Reset de senha',  'primary'),
+  'acesso_superadmin':('Acesso admin',   'info'),
+} %}
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-journal-text me-2"></i>Auditoria</h1>
+    <p>Últimas 200 ações sensíveis registradas no sistema</p>
+  </div>
+  <a href="{{ url_for('admin.admin_usuarios') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Usuários
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-shield-check me-2"></i>Registro de Auditoria</span>
+    <span class="text-muted" style="font-size:0.8rem;font-weight:400">{{ registros|length }} registro(s)</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Data/Hora</th>
+          <th>Usuário</th>
+          <th>Ação</th>
+          <th>Detalhes</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        {% set label_color = _labels.get(r['acao'], (r['acao'], 'secondary')) %}
+        <tr>
+          <td class="font-monospace" style="font-size:0.78rem;white-space:nowrap;">
+            {{ r['criado_em'] or '—' }}
+          </td>
+          <td class="fw-medium">{{ r['nome_usuario'] or '—' }}</td>
+          <td>
+            <span class="badge bg-{{ label_color[1] }} bg-opacity-10 text-{{ label_color[1] }}"
+                  style="font-size:0.72rem;font-weight:600;padding:3px 8px;border-radius:6px;">
+              {{ label_color[0] }}
+            </span>
+          </td>
+          <td style="font-size:0.82rem;color:#475569;">{{ r['detalhes'] or '—' }}</td>
+          <td class="font-monospace" style="font-size:0.75rem;color:#94a3b8;">{{ r['ip'] or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">Nenhum registro de auditoria encontrado.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

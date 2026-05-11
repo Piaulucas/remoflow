@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remoção #{{ remocao.numero_transporte or remocao.id }} — Impressão</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 13px;
+      color: #111;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .no-print { margin-bottom: 16px; display: flex; gap: 8px; }
+    .btn {
+      padding: 6px 14px;
+      border: 1px solid #666;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      background: #fff;
+      text-decoration: none;
+      color: #111;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+
+    /* Header */
+    .cabecalho {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+    .cabecalho img { height: 60px; width: auto; object-fit: contain; }
+    .cabecalho-texto h1 { font-size: 17px; font-weight: bold; }
+    .cabecalho-texto p { font-size: 12px; color: #444; margin-top: 2px; }
+
+    hr { border: none; border-top: 1.5px solid #222; margin: 10px 0; }
+
+    /* Meta line */
+    .meta { display: flex; gap: 24px; margin: 8px 0; font-size: 13px; }
+    .meta span strong { margin-right: 4px; }
+
+    /* Sections */
+    .secao { margin: 10px 0; }
+    .secao-titulo {
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #555;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+    }
+    .linha { display: flex; gap: 12px; margin-bottom: 5px; flex-wrap: wrap; }
+    .campo { display: flex; flex-direction: column; }
+    .campo label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: .05em; }
+    .campo span { font-size: 13px; font-weight: 500; }
+    .campo-lg { flex: 1 1 280px; }
+    .campo-md { flex: 1 1 180px; }
+    .campo-sm { flex: 0 0 120px; }
+    .campo-xs { flex: 0 0 80px; }
+
+    /* Equipe table */
+    .equipe-table { width: 100%; border-collapse: collapse; }
+    .equipe-table th {
+      font-size: 10px; font-weight: bold; text-transform: uppercase;
+      letter-spacing: .05em; color: #555; text-align: left;
+      padding: 2px 4px; border-bottom: 1px solid #ddd;
+    }
+    .equipe-table td {
+      padding: 4px 4px; font-size: 13px; border-bottom: 1px solid #eee;
+    }
+    .equipe-table tr:last-child td { border-bottom: none; }
+
+    /* Observações */
+    .obs-box {
+      border: 1px solid #ccc;
+      min-height: 48px;
+      padding: 6px 8px;
+      font-size: 13px;
+      border-radius: 3px;
+    }
+
+    /* Footer */
+    .rodape {
+      margin-top: 14px;
+      font-size: 11px;
+      color: #555;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Histórico */
+    .hist-bloco {
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .hist-header {
+      display: flex;
+      justify-content: space-between;
+      background: #f5f5f5;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .hist-quem { font-weight: bold; }
+    .hist-quando { color: #555; }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .hist-table th {
+      text-align: left; padding: 3px 8px;
+      background: #fafafa; border-bottom: 1px solid #ddd;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #555;
+    }
+    .hist-table td { padding: 3px 8px; border-bottom: 1px solid #f0f0f0; }
+    .hist-table tr:last-child td { border-bottom: none; }
+    .hist-campo { font-weight: 500; width: 130px; }
+    .hist-de { color: #c0392b; width: 45%; }
+    .hist-para { color: #27ae60; }
+
+    /* Print */
+    @media print {
+      .no-print { display: none !important; }
+      body { font-size: 12pt; padding: 0; }
+      @page { margin: 2cm; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print">
+    <button class="btn btn-primary" onclick="window.print()">&#128438; Imprimir</button>
+    <a href="javascript:window.close()" class="btn">&#8592; Fechar</a>
+  </div>
+
+  <!-- Cabeçalho -->
+  <div class="cabecalho">
+    {% if empresa.logo_empresa %}
+      <img src="{{ url_for('static', filename=empresa.logo_empresa) }}" alt="Logo">
+    {% endif %}
+    <div class="cabecalho-texto">
+      <h1>{{ empresa.nome or empresa.nome_curto }}</h1>
+      <p>Relatório de Remoção Inter-hospitalar</p>
+    </div>
+  </div>
+  <hr>
+
+  <!-- Identificação -->
+  <div class="meta">
+    <span><strong>Nº Transporte:</strong> #{{ remocao.numero_transporte or remocao.id }}</span>
+    <span><strong>Data:</strong> {{ remocao.data | default('—') }}</span>
+    <span><strong>Classificação:</strong> {{ remocao.classificacao_paciente or '—' }}</span>
+    <span><strong>COVID:</strong> {{ remocao.covid or 'Não' }}</span>
+  </div>
+  <hr>
+
+  <!-- Paciente -->
+  <div class="secao">
+    <div class="secao-titulo">Paciente</div>
+    <div class="linha">
+      <div class="campo campo-lg">
+        <label>Nome</label>
+        <span>{{ remocao.nome_paciente or '—' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>Idade</label>
+        <span>
+          {% if remocao.idade %}
+            {{ remocao.idade }} {{ remocao.idade_unidade or 'anos' }}
+          {% else %}—{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trajeto -->
+  <div class="secao">
+    <div class="secao-titulo">Trajeto</div>
+    <div class="linha">
+      <div class="campo campo-lg">
+        <label>Origem</label>
+        <span>{{ remocao.unidade_origem or '—' }}</span>
+      </div>
+      <div class="campo campo-lg">
+        <label>Destino</label>
+        <span>{{ remocao.unidade_destino or '—' }}</span>
+      </div>
+      <div class="campo campo-sm">
+        <label>Ambulância</label>
+        <span>{{ remocao.ambulancia or '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Horários e KM -->
+  <div class="secao">
+    <div class="secao-titulo">Horários e KM</div>
+    <div class="linha">
+      <div class="campo campo-xs">
+        <label>Saída</label>
+        <span>{{ remocao.hora_saida or '—' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>Retorno</label>
+        <span>{{ remocao.hora_retorno or '—' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>Tempo Total</label>
+        <span>{{ remocao.tempo_total or '—' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>KM Inicial</label>
+        <span>{{ remocao.km_inicial if remocao.km_inicial is not none else '___' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>KM Final</label>
+        <span>{{ remocao.km_final if remocao.km_final is not none else '___' }}</span>
+      </div>
+      <div class="campo campo-xs">
+        <label>KM Total</label>
+        <span>{{ remocao.km_total if remocao.km_total is not none else '—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Equipe -->
+  <div class="secao">
+    <div class="secao-titulo">Equipe</div>
+    <table class="equipe-table">
+      <thead>
+        <tr>
+          <th style="width:110px">Função</th>
+          <th>Nome</th>
+          <th style="width:90px">Equipe</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Médico</td>
+          <td>{{ remocao.medico or '___________________________' }}</td>
+          <td>{{ remocao.medico_equipe or '________' }}</td>
+        </tr>
+        <tr>
+          <td>Enfermeiro</td>
+          <td>{{ remocao.enfermeiro or '___________________________' }}</td>
+          <td>{{ remocao.enfermeiro_equipe or '________' }}</td>
+        </tr>
+        <tr>
+          <td>Condutor</td>
+          <td>{{ remocao.condutor or '___________________________' }}</td>
+          <td>{{ remocao.condutor_equipe or '________' }}</td>
+        </tr>
+        {% if remocao.condutor_apoio %}
+        <tr>
+          <td>Condutor Apoio</td>
+          <td>{{ remocao.condutor_apoio }}</td>
+          <td>{{ remocao.condutor_apoio_equipe or '________' }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Observações -->
+  <div class="secao">
+    <div class="secao-titulo">Observações</div>
+    <div class="obs-box">{{ remocao.observacao or '' }}</div>
+  </div>
+
+  <!-- Histórico de Edições -->
+  {% if historico %}
+  <div class="secao">
+    <div class="secao-titulo">Histórico de Edições</div>
+    {% for edicao in historico %}
+    <div class="hist-bloco">
+      <div class="hist-header">
+        <span class="hist-quem">{{ edicao.editado_por or '—' }}</span>
+        <span class="hist-quando">{{ edicao.editado_em or '' }}</span>
+      </div>
+      {% if edicao.campos %}
+      <table class="hist-table">
+        <thead>
+          <tr><th>Campo</th><th>Antes</th><th>Depois</th></tr>
+        </thead>
+        <tbody>
+          {% for c in edicao.campos %}
+          <tr>
+            <td class="hist-campo">{{ c.campo }}</td>
+            <td class="hist-de">{{ c.de if c.de else '—' }}</td>
+            <td class="hist-para">{{ c.para if c.para else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <hr>
+
+  <!-- Rodapé -->
+  <div class="rodape">
+    <span>Responsável pelo registro: <strong>{{ remocao.responsavel or '—' }}</strong></span>
+    <span>Impresso em: <strong id="data-impressao"></strong></span>
+  </div>
+
+  <script>
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    document.getElementById('data-impressao').textContent =
+      `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  </script>
+</body>
+</html>

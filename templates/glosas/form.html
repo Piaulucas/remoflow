@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <h1>
+    <i class="bi bi-slash-circle me-2"></i>
+    {% if acao == 'nova' %}Nova Glosa{% else %}Editar Glosa{% endif %}
+  </h1>
+  <p>{% if acao == 'nova' %}Registrar nova competência de glosa{% else %}Editar dados da competência {{ glosa.competencia }}{% endif %}</p>
+</div>
+
+<div class="card" style="max-width: 720px;">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Competência <span class="text-danger">*</span></label>
+          <input type="text" name="competencia" class="form-control"
+                 placeholder="MM/AAAA"
+                 pattern="^\d{2}\/\d{4}$"
+                 title="Formato: MM/AAAA (ex: 03/2026)"
+                 value="{{ glosa.competencia if glosa else '' }}"
+                 required>
+          <div class="form-text">Formato: MM/AAAA</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Status</label>
+          <select name="status" class="form-select">
+            <option value="pendente" {% if not glosa or glosa.status == 'pendente' %}selected{% endif %}>Pendente</option>
+            <option value="em_recurso" {% if glosa and glosa.status == 'em_recurso' %}selected{% endif %}>Em recurso</option>
+            <option value="finalizado" {% if glosa and glosa.status == 'finalizado' %}selected{% endif %}>Finalizado</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="my-4">
+      <h6 class="text-muted mb-3">Valores (R$)</h6>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Valor apresentado</label>
+          <input type="number" name="valor_apresentado" class="form-control"
+                 step="0.01" min="0"
+                 value="{{ glosa.valor_apresentado if glosa else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Valor glosado</label>
+          <input type="number" name="valor_glosado" class="form-control"
+                 step="0.01" min="0"
+                 value="{{ glosa.valor_glosado if glosa else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Valor pertinente</label>
+          <input type="number" name="valor_pertinente" class="form-control"
+                 step="0.01" min="0"
+                 value="{{ glosa.valor_pertinente if glosa else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Recurso solicitado</label>
+          <input type="number" name="valor_recurso_solicitado" class="form-control"
+                 step="0.01" min="0"
+                 value="{{ glosa.valor_recurso_solicitado if glosa else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Recurso acatado</label>
+          <input type="number" name="valor_recurso_acatado" class="form-control"
+                 step="0.01" min="0"
+                 value="{{ glosa.valor_recurso_acatado if glosa else '' }}">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label">Observação</label>
+        <textarea name="observacao" class="form-control" rows="3"
+                  placeholder="Informações adicionais, número do ofício, etc.">{{ glosa.observacao if glosa else '' }}</textarea>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>
+          {% if acao == 'nova' %}Registrar{% else %}Salvar alterações{% endif %}
+        </button>
+        <a href="{{ url_for('glosas.glosas') }}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

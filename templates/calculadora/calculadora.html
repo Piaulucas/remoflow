@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Calculadora{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3" style="max-width:680px;">
+  <h4 class="mb-4 fw-semibold">
+    <i class="bi bi-calculator me-2 text-primary"></i>Calculadora de Valores
+  </h4>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <div class="row g-3">
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Especialidade</label>
+          <select id="especialidade" class="form-select" onchange="onEspecialidadeChange()">
+            <option value="">Selecione…</option>
+            <option value="Médico">Médico</option>
+            <option value="Enfermeiro">Enfermeiro</option>
+            <option value="Condutor">Condutor</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Equipe</label>
+          <select id="equipe" class="form-select">
+            <option value="">Selecione…</option>
+            <option value="Equipe 1" id="opt-equipe1">Equipe 1</option>
+            <option value="Equipe 2">Equipe 2</option>
+            <option value="Equipe 3">Equipe 3</option>
+            <option value="Extra">Extra</option>
+          </select>
+        </div>
+
+        <!-- Campos para Equipe 2/3/Extra -->
+        <div id="campos-var" class="col-12 d-none">
+          <div class="row g-3">
+            <div class="col-12 col-sm-5">
+              <label class="form-label fw-medium">KM total</label>
+              <div class="input-group">
+                <input type="number" id="km" class="form-control" min="0" step="0.1" placeholder="0">
+                <span class="input-group-text">km</span>
+              </div>
+            </div>
+            <div class="col-12 col-sm-7">
+              <label class="form-label fw-medium">Tempo total</label>
+              <div class="d-flex gap-2">
+                <div class="input-group">
+                  <input type="number" id="horas" class="form-control" min="0" step="1" placeholder="0">
+                  <span class="input-group-text">h</span>
+                </div>
+                <div class="input-group">
+                  <input type="number" id="minutos" class="form-control" min="0" max="59" step="1" placeholder="0">
+                  <span class="input-group-text">min</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campo para Equipe 1 -->
+        <div id="campos-eq1" class="col-12 col-sm-6 d-none">
+          <label class="form-label fw-medium">Minutos de hora extra</label>
+          <div class="input-group">
+            <input type="number" id="min-extra" class="form-control" min="0" step="1" placeholder="0">
+            <span class="input-group-text">min</span>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-primary px-4" onclick="calcular()">
+            <i class="bi bi-lightning-fill me-1"></i>Calcular
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div id="resultado" class="d-none">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold py-2 px-4">
+        <i class="bi bi-receipt me-2"></i>Resultado
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0" id="tabela-resultado">
+          <tbody id="linhas-resultado"></tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-transparent border-top px-4 py-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-dark">Valor da remoção</span>
+          <span class="fw-bold fs-5 text-primary" id="valor-final"></span>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Valores calculados conforme tabela vigente. Piso diário do médico não considerado.
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CALCULADORA DE HORA EXTRA (Equipe 1)
+  ════════════════════════════════════════════════════════════════ -->
+  <h4 class="mb-4 mt-5 fw-semibold">
+    <i class="bi bi-clock-history me-2 text-primary"></i>Calculadora de Hora Extra (Equipe 1)
+  </h4>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <div class="row g-3">
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Especialidade</label>
+          <select id="hexa-especialidade" class="form-select">
+            <option value="">Selecione…</option>
+            <option value="Médico">Médico</option>
+            <option value="Enfermeiro">Enfermeiro</option>
+            <option value="Condutor">Condutor</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Tempo excedente</label>
+          <div class="input-group">
+            <input type="text" id="hexa-min" class="form-control" placeholder="hh:mm" maxlength="5"
+                   oninput="mascaraHHMM(this)">
+          </div>
+          <div class="form-text">Tempo que ultrapassou as 07h do dia seguinte</div>
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-primary px-4" onclick="calcularHexaEquipe1()">
+            <i class="bi bi-lightning-fill me-1"></i>Calcular
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado Hora Extra -->
+  <div id="hexa-resultado" class="d-none mb-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold py-2 px-4">
+        <i class="bi bi-receipt me-2"></i>Resultado
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody id="hexa-linhas"></tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-transparent border-top px-4 py-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-dark">Valor hora extra</span>
+          <span class="fw-bold fs-5 text-primary" id="hexa-total"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CALCULADORA DE VIAGEM (Faturamento)
+  ════════════════════════════════════════════════════════════════ -->
+  <h4 class="mb-4 fw-semibold">
+    <i class="bi bi-truck me-2 text-primary"></i>Calculadora de Viagem (Faturamento)
+  </h4>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+      <div class="row g-3">
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Convênio</label>
+          <select id="viagem-convenio" class="form-select">
+            <option value="SESAB">SESAB</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <label class="form-label fw-medium">Classificação</label>
+          <select id="viagem-classe" class="form-select">
+            <option value="">Selecione…</option>
+            <option value="adulto">Adulto / PED</option>
+            <option value="neonatal">Neonatal</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-sm-5">
+          <label class="form-label fw-medium">KM total</label>
+          <div class="input-group">
+            <input type="number" id="viagem-km" class="form-control" min="0" step="0.1" placeholder="0">
+            <span class="input-group-text">km</span>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-7">
+          <label class="form-label fw-medium">Tempo total</label>
+          <div class="d-flex gap-2">
+            <div class="input-group">
+              <input type="number" id="viagem-horas" class="form-control" min="0" step="1" placeholder="0">
+              <span class="input-group-text">h</span>
+            </div>
+            <div class="input-group">
+              <input type="number" id="viagem-minutos" class="form-control" min="0" max="59" step="1" placeholder="0">
+              <span class="input-group-text">min</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-primary px-4" onclick="calcularViagem()">
+            <i class="bi bi-lightning-fill me-1"></i>Calcular
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado Viagem -->
+  <div id="viagem-resultado" class="d-none mb-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-primary text-white fw-semibold py-2 px-4">
+        <i class="bi bi-receipt me-2"></i>Resultado
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody id="viagem-linhas"></tbody>
+        </table>
+      </div>
+      <div class="card-footer bg-transparent border-top px-4 py-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="fw-semibold text-dark">Total da viagem</span>
+          <span class="fw-bold fs-5 text-primary" id="viagem-total"></span>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted small mt-3 mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Valores conforme tabela SESAB vigente.
+    </p>
+  </div>
+
+</div>
+
+<script>
+// ── Constantes (espelho de constants.py) ──────────────────────────────────────
+const C = {
+  // Equipe 1
+  PLANTAO_MEDICO: 2000.00,
+  PLANTAO_ENFERM: 500.00,
+  get HEXA_MEDICO() { return this.PLANTAO_MEDICO / 24 / 60; },
+  get HEXA_ENFERM() { return this.PLANTAO_ENFERM / 24 / 60; },
+  COND_SALARIO_FIXO: 2500.00,
+  COND_PLANTOES_MES: 8,
+  get HEXA_COND() { return this.COND_SALARIO_FIXO / this.COND_PLANTOES_MES / 24 / 60; },
+
+  // Médico Equipe 2/3/Extra
+  MED_BASE: 300.00,
+  MED_KM_LIVRE: 100.0,
+  MED_MIN_LIVRE: 120,
+  MED_TAXA_KM: 1.37,
+  MED_TAXA_MIN: 0.267333,
+
+  // Enfermeiro Equipe 2/3/Extra
+  ENF_BASE: 90.00,
+  ENF_KM_LIVRE: 100.0,
+  ENF_MIN_LIVRE: 120,
+  ENF_TAXA_KM: 0.39,
+  ENF_TAXA_MIN: 0.0823333,
+
+  // Condutor Equipe 2/3/Extra
+  COND_TAXA_KM: 0.35,
+  COND_PISO: 50.00,
+};
+
+function fmt(v) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function onEspecialidadeChange() {
+  const esp = document.getElementById('especialidade').value;
+  const opt1 = document.getElementById('opt-equipe1');
+  const equipeEl = document.getElementById('equipe');
+
+  if (esp === 'Condutor') {
+    opt1.hidden = true;
+    if (equipeEl.value === 'Equipe 1') equipeEl.value = '';
+  } else {
+    opt1.hidden = false;
+  }
+
+  atualizarCampos();
+  esconderResultado();
+}
+
+function atualizarCampos() {
+  const equipe = document.getElementById('equipe').value;
+  const camposVar = document.getElementById('campos-var');
+  const camposEq1 = document.getElementById('campos-eq1');
+
+  if (equipe === 'Equipe 1') {
+    camposVar.classList.add('d-none');
+    camposEq1.classList.remove('d-none');
+  } else if (equipe) {
+    camposVar.classList.remove('d-none');
+    camposEq1.classList.add('d-none');
+  } else {
+    camposVar.classList.add('d-none');
+    camposEq1.classList.add('d-none');
+  }
+
+  esconderResultado();
+}
+
+document.getElementById('equipe').addEventListener('change', atualizarCampos);
+
+function esconderResultado() {
+  document.getElementById('resultado').classList.add('d-none');
+}
+
+function addLinha(label, valor, destaque) {
+  const tr = document.createElement('tr');
+  if (destaque) tr.classList.add('table-light');
+  tr.innerHTML = `
+    <td class="px-4 py-2 text-muted small">${label}</td>
+    <td class="px-4 py-2 text-end fw-medium">${fmt(valor)}</td>
+  `;
+  document.getElementById('linhas-resultado').appendChild(tr);
+}
+
+function calcular() {
+  const esp    = document.getElementById('especialidade').value;
+  const equipe = document.getElementById('equipe').value;
+
+  if (!esp || !equipe) {
+    alert('Selecione especialidade e equipe.');
+    return;
+  }
+
+  document.getElementById('linhas-resultado').innerHTML = '';
+
+  let total = 0;
+
+  if (equipe === 'Equipe 1') {
+    const minExtra = parseFloat(document.getElementById('min-extra').value) || 0;
+
+    if (esp === 'Médico') {
+      const plantao = C.PLANTAO_MEDICO;
+      const hexa    = minExtra * C.HEXA_MEDICO;
+      addLinha('Valor fixo do plantão', plantao);
+      if (minExtra > 0) addLinha(`Hora extra (${minExtra} min)`, hexa);
+      total = plantao + hexa;
+    } else if (esp === 'Enfermeiro') {
+      const plantao = C.PLANTAO_ENFERM;
+      const hexa    = minExtra * C.HEXA_ENFERM;
+      addLinha('Valor fixo do plantão', plantao);
+      if (minExtra > 0) addLinha(`Hora extra (${minExtra} min)`, hexa);
+      total = plantao + hexa;
+    } else {
+      alert('Condutor não possui Equipe 1.');
+      return;
+    }
+
+  } else {
+    // Equipe 2, 3 ou Extra
+    const km  = parseFloat(document.getElementById('km').value) || 0;
+    const hrs = parseFloat(document.getElementById('horas').value) || 0;
+    const min = parseFloat(document.getElementById('minutos').value) || 0;
+    const totalMin = hrs * 60 + min;
+
+    if (esp === 'Condutor') {
+      const valorKm = km * C.COND_TAXA_KM;
+      const valor   = Math.max(valorKm, C.COND_PISO);
+      addLinha(`Valor por KM (${fmt(C.COND_TAXA_KM)}/km)`, valorKm);
+      addLinha('Piso mínimo', C.COND_PISO);
+      total = valor;
+
+    } else if (esp === 'Médico') {
+      const kmExc  = Math.max(0, km - C.MED_KM_LIVRE);
+      const minExc = Math.max(0, totalMin - C.MED_MIN_LIVRE);
+      const vKm    = kmExc * C.MED_TAXA_KM;
+      const vMin   = minExc * C.MED_TAXA_MIN;
+      addLinha('Valor base', C.MED_BASE);
+      addLinha(`KM excedente (acima de ${C.MED_KM_LIVRE} km — ${kmExc.toFixed(1)} km)`, vKm);
+      addLinha(`Tempo excedente (acima de ${C.MED_MIN_LIVRE} min — ${minExc} min)`, vMin);
+      total = C.MED_BASE + vKm + vMin;
+
+    } else if (esp === 'Enfermeiro') {
+      const kmExc  = Math.max(0, km - C.ENF_KM_LIVRE);
+      const minExc = Math.max(0, totalMin - C.ENF_MIN_LIVRE);
+      const vKm    = kmExc * C.ENF_TAXA_KM;
+      const vMin   = minExc * C.ENF_TAXA_MIN;
+      addLinha('Valor base', C.ENF_BASE);
+      addLinha(`KM excedente (acima de ${C.ENF_KM_LIVRE} km — ${kmExc.toFixed(1)} km)`, vKm);
+      addLinha(`Tempo excedente (acima de ${C.ENF_MIN_LIVRE} min — ${minExc} min)`, vMin);
+      total = C.ENF_BASE + vKm + vMin;
+    }
+  }
+
+  document.getElementById('valor-final').textContent = fmt(total);
+  document.getElementById('resultado').classList.remove('d-none');
+}
+
+// ── Calculadora de Hora Extra (Equipe 1) ─────────────────────────────────────
+function mascaraHHMM(el) {
+  let v = el.value.replace(/\D/g, '').slice(0, 4);
+  if (v.length > 2) v = v.slice(0, 2) + ':' + v.slice(2);
+  el.value = v;
+}
+
+function parseHHMM(str) {
+  const parts = str.split(':');
+  const h = parseInt(parts[0]) || 0;
+  const m = parseInt(parts[1]) || 0;
+  return h * 60 + m;
+}
+
+function calcularHexaEquipe1() {
+  const esp    = document.getElementById('hexa-especialidade').value;
+  const minExc = parseHHMM(document.getElementById('hexa-min').value);
+
+  if (!esp) { alert('Selecione a especialidade.'); return; }
+
+  const taxaMin = esp === 'Médico' ? C.HEXA_MEDICO : esp === 'Enfermeiro' ? C.HEXA_ENFERM : C.HEXA_COND;
+  const valor   = minExc * taxaMin;
+
+  const tbody = document.getElementById('hexa-linhas');
+  tbody.innerHTML = '';
+
+  const addLinhaHexa = (label, val) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="px-4 py-2 text-muted small">${label}</td>
+      <td class="px-4 py-2 text-end fw-medium">${val}</td>
+    `;
+    tbody.appendChild(tr);
+  };
+
+  addLinhaHexa('Taxa por minuto', taxaMin.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + '/min');
+  addLinhaHexa('Minutos excedentes', minExc + ' min');
+
+  document.getElementById('hexa-total').textContent = fmt(valor);
+  document.getElementById('hexa-resultado').classList.remove('d-none');
+}
+
+// ── Calculadora de Viagem (Faturamento) ──────────────────────────────────────
+const SESAB = {
+  adulto:   { servico: 1400.00,  horaExc: 295.00,  kmExc: 8.39 },
+  neonatal: { servico: 1692.94,  horaExc: 342.12,  kmExc: 8.39 },
+  franquiaKm:  100,
+  franquiaMin: 120,
+};
+
+function calcularViagem() {
+  const classe  = document.getElementById('viagem-classe').value;
+  const km      = parseFloat(document.getElementById('viagem-km').value) || 0;
+  const hrs     = parseFloat(document.getElementById('viagem-horas').value) || 0;
+  const min     = parseFloat(document.getElementById('viagem-minutos').value) || 0;
+  const totalMin = hrs * 60 + min;
+
+  if (!classe) { alert('Selecione a classificação.'); return; }
+
+  const tab = SESAB[classe];
+  const kmExcQtd  = Math.max(0, km - SESAB.franquiaKm);
+  const minExcQtd = Math.max(0, totalMin - SESAB.franquiaMin);
+
+  const vServico = tab.servico;
+  const vKm      = kmExcQtd  * tab.kmExc;
+  const vTempo   = (minExcQtd / 60) * tab.horaExc;
+  const total    = vServico + vKm + vTempo;
+
+  const tbody = document.getElementById('viagem-linhas');
+  tbody.innerHTML = '';
+
+  const addLV = (label, valor) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="px-4 py-2 text-muted small">${label}</td>
+      <td class="px-4 py-2 text-end fw-medium">${fmt(valor)}</td>
+    `;
+    tbody.appendChild(tr);
+  };
+
+  addLV('Valor do serviço', vServico);
+  addLV(`KM excedente (acima de ${SESAB.franquiaKm} km — ${kmExcQtd.toFixed(1)} km × ${fmt(tab.kmExc)}/km)`, vKm);
+  addLV(`Tempo excedente (acima de ${SESAB.franquiaMin} min — ${minExcQtd} min × ${fmt(tab.horaExc)}/h)`, vTempo);
+
+  document.getElementById('viagem-total').textContent = fmt(total);
+  document.getElementById('viagem-resultado').classList.remove('d-none');
+}
+</script>
+{% endblock %}

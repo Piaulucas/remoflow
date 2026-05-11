@@ -1,0 +1,443 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Configurações Financeiras</h4>
+    <small class="text-muted">Valores SESAB e regras de pagamento por empresa</small>
+  </div>
+  {% if cfg.atualizado_em %}
+  <small class="text-muted">Última atualização: {{ cfg.atualizado_em }}</small>
+  {% endif %}
+</div>
+
+<form method="POST" action="{{ url_for('admin.admin_configuracoes') }}">
+
+  <!-- Abas -->
+  <ul class="nav nav-tabs mb-4" id="cfgTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="tab-sesab-btn" data-bs-toggle="tab"
+              data-bs-target="#tab-sesab" type="button">
+        <i class="bi bi-hospital me-1"></i> Valores SESAB
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-condutor-btn" data-bs-toggle="tab"
+              data-bs-target="#tab-condutor" type="button">
+        <i class="bi bi-person-badge me-1"></i> Condutor
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-medico-btn" data-bs-toggle="tab"
+              data-bs-target="#tab-medico" type="button">
+        <i class="bi bi-heart-pulse me-1"></i> Médico
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="tab-enf-btn" data-bs-toggle="tab"
+              data-bs-target="#tab-enf" type="button">
+        <i class="bi bi-bandaid me-1"></i> Enfermeiro
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ── ABA 1: SESAB ──────────────────────────────────────────────── -->
+    <div class="tab-pane fade show active" id="tab-sesab">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">Tabela de Valores SESAB</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Adulto/PED — Pacote (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="sesab_adulto_ped" value="{{ cfg.sesab_adulto_ped }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Neonatal — Pacote (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="sesab_neonatal" value="{{ cfg.sesab_neonatal }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Hora excedente Adulto/PED (R$/h)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="sesab_hora_exc_adulto" value="{{ cfg.sesab_hora_exc_adulto }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Hora excedente Neonatal (R$/h)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="sesab_hora_exc_neonatal" value="{{ cfg.sesab_hora_exc_neonatal }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">KM excedente (R$/km)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="sesab_km_exc" value="{{ cfg.sesab_km_exc }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Franquia de tempo (min)</label>
+              <input type="number" step="1" class="form-control"
+                     name="sesab_franquia_tempo" value="{{ cfg.sesab_franquia_tempo }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Franquia de KM (km)</label>
+              <input type="number" step="1" class="form-control"
+                     name="sesab_franquia_km" value="{{ cfg.sesab_franquia_km }}">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ABA 2: CONDUTOR ───────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-condutor">
+
+      <!-- Equipe 1 — sempre fixo -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-semibold"><i class="bi bi-people me-1"></i> Condutor — Equipe 1</span>
+            <span class="badge bg-primary">Fixo</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Salário fixo mensal (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="condutor_salario_base"
+                     value="{{ cfg.condutor_salario_base or 2500.0 }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Desconto alimentação por plantão (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="condutor_desconto_refeicao"
+                     value="{{ cfg.condutor_desconto_refeicao or 80.0 }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+              <input type="number" step="0.0001" class="form-control"
+                     name="condutor_e1_hexa_min"
+                     value="{{ '%.4f'|format(cfg.condutor_e1_hexa_min or 0.2170) }}">
+              <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Equipes 2 e 3/Extra — radio fixo/variável -->
+      {% for eq_num, eq_label in [('2','Equipe 2'), ('3','Equipe 3 / Extra')] %}
+      {% set tipo_val = cfg | attr('condutor_eq' ~ eq_num ~ '_tipo') %}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center gap-3">
+          <span><i class="bi bi-people me-1"></i> Condutor — {{ eq_label }}</span>
+          <div class="ms-auto d-flex gap-3">
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="condutor_eq{{ eq_num }}_tipo"
+                     id="cond_eq{{ eq_num }}_fixo"
+                     value="fixo"
+                     data-target="condutor_e{{ eq_num }}"
+                     {{ 'checked' if tipo_val == 'fixo' else '' }}>
+              <label class="form-check-label" for="cond_eq{{ eq_num }}_fixo">Fixo por plantão</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="condutor_eq{{ eq_num }}_tipo"
+                     id="cond_eq{{ eq_num }}_var"
+                     value="variavel"
+                     data-target="condutor_e{{ eq_num }}"
+                     {{ 'checked' if tipo_val != 'fixo' else '' }}>
+              <label class="form-check-label" for="cond_eq{{ eq_num }}_var">Variável por remoção</label>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Campos FIXO -->
+          <div id="condutor_e{{ eq_num }}_fixo_fields"
+               class="{{ '' if tipo_val == 'fixo' else 'd-none' }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Valor fixo por plantão (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="condutor_e{{ eq_num }}_plantao"
+                       value="{{ cfg | attr('condutor_e' ~ eq_num ~ '_plantao') or 0 }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+                <input type="number" step="0.0001" class="form-control"
+                       name="condutor_e{{ eq_num }}_hexa_min"
+                       value="{{ '%.4f'|format(cfg | attr('condutor_e' ~ eq_num ~ '_hexa_min') or 0) }}">
+                <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+              </div>
+            </div>
+          </div>
+          <!-- Campos VARIÁVEL -->
+          <div id="condutor_e{{ eq_num }}_var_fields"
+               class="{{ 'd-none' if tipo_val == 'fixo' else '' }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Taxa por KM (R$/km)</label>
+                <input type="number" step="0.001" class="form-control"
+                       name="condutor_taxa_km"
+                       value="{{ cfg.condutor_taxa_km or 0.35 }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Piso mínimo por remoção (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="condutor_piso"
+                       value="{{ cfg.condutor_piso or 50.0 }}">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      <hr class="my-4">
+      <p class="fw-semibold text-muted small text-uppercase mb-3" style="letter-spacing:.05em">
+        Sobreaviso
+      </p>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Sobreaviso (R$/dia)</label>
+          <input type="number" step="0.01" class="form-control"
+                 name="condutor_sobreaviso"
+                 value="{{ cfg.condutor_sobreaviso if cfg.condutor_sobreaviso is not none else 50.0 }}">
+          <small class="text-muted">
+            Valor pago por dia com remoção como Equipe 2, 3 ou Extra.
+          </small>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── ABA 3: MÉDICO ─────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-medico">
+      {% for eq_num, eq_label in [('1','Equipe 1'), ('2','Equipe 2'), ('3','Equipe 3 / Extra')] %}
+      {% set tipo_val = cfg | attr('medico_eq' ~ eq_num ~ '_tipo') %}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center gap-3">
+          <span><i class="bi bi-people me-1"></i> Médico — {{ eq_label }}</span>
+          {% if eq_num == '1' %}
+          <span class="badge bg-primary ms-auto">Fixo</span>
+          {% else %}
+          <div class="ms-auto d-flex gap-3">
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="medico_eq{{ eq_num }}_tipo"
+                     id="med_eq{{ eq_num }}_fixo"
+                     value="fixo"
+                     data-target="med_eq{{ eq_num }}"
+                     {{ 'checked' if tipo_val == 'fixo' else '' }}>
+              <label class="form-check-label" for="med_eq{{ eq_num }}_fixo">Fixo por plantão</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="medico_eq{{ eq_num }}_tipo"
+                     id="med_eq{{ eq_num }}_var"
+                     value="variavel"
+                     data-target="med_eq{{ eq_num }}"
+                     {{ 'checked' if tipo_val != 'fixo' else '' }}>
+              <label class="form-check-label" for="med_eq{{ eq_num }}_var">Variável por remoção</label>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if eq_num == '1' %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Valor fixo por plantão (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="medico_eq1_valor_fixo"
+                     value="{{ cfg.medico_eq1_valor_fixo }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+              <input type="number" step="0.0001" class="form-control"
+                     name="medico_e1_hexa_min"
+                     value="{{ '%.4f'|format(cfg.medico_e1_hexa_min or 1.3889) }}">
+              <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+            </div>
+          </div>
+          {% else %}
+          <!-- Campos FIXO -->
+          <div id="med_eq{{ eq_num }}_fixo_fields"
+               class="{{ '' if tipo_val == 'fixo' else 'd-none' }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Valor fixo por plantão (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="medico_eq{{ eq_num }}_valor_fixo"
+                       value="{{ cfg | attr('medico_eq' ~ eq_num ~ '_valor_fixo') }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+                <input type="number" step="0.0001" class="form-control"
+                       name="medico_e{{ eq_num }}_hexa_min"
+                       value="{{ '%.4f'|format(cfg | attr('medico_e' ~ eq_num ~ '_hexa_min') or 0) }}">
+                <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+              </div>
+            </div>
+          </div>
+          <!-- Campos VARIÁVEL -->
+          <div id="med_eq{{ eq_num }}_var_fields"
+               class="{{ 'd-none' if tipo_val == 'fixo' else '' }}">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">Base por remoção (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="medico_eq{{ eq_num }}_base_remocao"
+                       value="{{ cfg | attr('medico_eq' ~ eq_num ~ '_base_remocao') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">KM excedente (R$/km)</label>
+                <input type="number" step="0.000001" class="form-control"
+                       name="medico_eq{{ eq_num }}_km_exc"
+                       value="{{ cfg | attr('medico_eq' ~ eq_num ~ '_km_exc') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Tempo excedente (R$/min)</label>
+                <input type="number" step="0.000001" class="form-control"
+                       name="medico_eq{{ eq_num }}_tempo_exc"
+                       value="{{ cfg | attr('medico_eq' ~ eq_num ~ '_tempo_exc') }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Piso diário (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="medico_eq{{ eq_num }}_piso_diario"
+                       value="{{ cfg | attr('medico_eq' ~ eq_num ~ '_piso_diario') }}">
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ── ABA 4: ENFERMEIRO ─────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-enf">
+      {% for eq_num, eq_label in [('1','Equipe 1'), ('2','Equipe 2'), ('3','Equipe 3 / Extra')] %}
+      {% set tipo_val = cfg | attr('enfermeiro_eq' ~ eq_num ~ '_tipo') %}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold d-flex align-items-center gap-3">
+          <span><i class="bi bi-people me-1"></i> Enfermeiro — {{ eq_label }}</span>
+          {% if eq_num == '1' %}
+          <span class="badge bg-primary ms-auto">Fixo</span>
+          {% else %}
+          <div class="ms-auto d-flex gap-3">
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="enfermeiro_eq{{ eq_num }}_tipo"
+                     id="enf_eq{{ eq_num }}_fixo"
+                     value="fixo"
+                     data-target="enf_eq{{ eq_num }}"
+                     {{ 'checked' if tipo_val == 'fixo' else '' }}>
+              <label class="form-check-label" for="enf_eq{{ eq_num }}_fixo">Fixo por plantão</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input tipo-radio" type="radio"
+                     name="enfermeiro_eq{{ eq_num }}_tipo"
+                     id="enf_eq{{ eq_num }}_var"
+                     value="variavel"
+                     data-target="enf_eq{{ eq_num }}"
+                     {{ 'checked' if tipo_val != 'fixo' else '' }}>
+              <label class="form-check-label" for="enf_eq{{ eq_num }}_var">Variável por remoção</label>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          {% if eq_num == '1' %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Valor fixo por plantão (R$)</label>
+              <input type="number" step="0.01" class="form-control"
+                     name="enfermeiro_eq1_valor_fixo"
+                     value="{{ cfg.enfermeiro_eq1_valor_fixo }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+              <input type="number" step="0.0001" class="form-control"
+                     name="enfermeiro_e1_hexa_min"
+                     value="{{ '%.4f'|format(cfg.enfermeiro_e1_hexa_min or 0.3472) }}">
+              <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+            </div>
+          </div>
+          {% else %}
+          <!-- Campos FIXO -->
+          <div id="enf_eq{{ eq_num }}_fixo_fields"
+               class="{{ '' if tipo_val == 'fixo' else 'd-none' }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Valor fixo por plantão (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="enfermeiro_eq{{ eq_num }}_valor_fixo"
+                       value="{{ cfg | attr('enfermeiro_eq' ~ eq_num ~ '_valor_fixo') }}">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Hora extra — taxa por minuto (R$/min)</label>
+                <input type="number" step="0.0001" class="form-control"
+                       name="enfermeiro_e{{ eq_num }}_hexa_min"
+                       value="{{ '%.4f'|format(cfg | attr('enfermeiro_e' ~ eq_num ~ '_hexa_min') or 0) }}">
+                <small class="text-muted">Use 0 para desabilitar hora extra.</small>
+              </div>
+            </div>
+          </div>
+          <!-- Campos VARIÁVEL -->
+          <div id="enf_eq{{ eq_num }}_var_fields"
+               class="{{ 'd-none' if tipo_val == 'fixo' else '' }}">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Base por remoção (R$)</label>
+                <input type="number" step="0.01" class="form-control"
+                       name="enfermeiro_eq{{ eq_num }}_base_remocao"
+                       value="{{ cfg | attr('enfermeiro_eq' ~ eq_num ~ '_base_remocao') }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">KM excedente (R$/km)</label>
+                <input type="number" step="0.000001" class="form-control"
+                       name="enfermeiro_eq{{ eq_num }}_km_exc"
+                       value="{{ cfg | attr('enfermeiro_eq' ~ eq_num ~ '_km_exc') }}">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tempo excedente (R$/min)</label>
+                <input type="number" step="0.000001" class="form-control"
+                       name="enfermeiro_eq{{ eq_num }}_tempo_exc"
+                       value="{{ cfg | attr('enfermeiro_eq' ~ eq_num ~ '_tempo_exc') }}">
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div><!-- /tab-content -->
+
+  <div class="d-flex justify-content-end mt-3">
+    <button type="submit" class="btn btn-primary px-4">
+      <i class="bi bi-floppy me-1"></i> Salvar configurações
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tipo-radio').forEach(function(radio) {
+  radio.addEventListener('change', function() {
+    var target = this.dataset.target;
+    var fixoDiv = document.getElementById(target + '_fixo_fields');
+    var varDiv  = document.getElementById(target + '_var_fields');
+    if (this.value === 'fixo') {
+      fixoDiv.classList.remove('d-none');
+      varDiv.classList.add('d-none');
+    } else {
+      fixoDiv.classList.add('d-none');
+      varDiv.classList.remove('d-none');
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+  .tbl-remocoes th { white-space: nowrap; }
+  .tbl-remocoes td { vertical-align: top; }
+</style>
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1>Remoções</h1>
+    <p>Histórico completo de transportes registrados</p>
+  </div>
+  <div class="d-flex flex-column align-items-end gap-1">
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('remocoes.abrir_remocao') }}" class="btn btn-warning btn-sm d-flex align-items-center gap-2">
+        <i class="bi bi-broadcast"></i> Abrir Remoção
+      </a>
+      {% if session.get('usuario_perfil') in ('Admin', 'SuperAdmin') %}
+      <form method="POST" action="{{ url_for('remocoes.liberar_retroativo') }}"
+            onsubmit="return confirm('Liberar lançamento retroativo por 60 minutos?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-clock-history"></i> Liberar Retroativo
+        </button>
+      </form>
+      {% endif %}
+      {% if session.get('usuario_perfil') == 'Recepcionista' and retroativo_ativo %}
+      <a href="{{ url_for('remocoes.nova_remocao') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-clock-history"></i> Nova Remoção
+        <span class="badge bg-warning text-dark ms-1" id="countdownBadge"></span>
+      </a>
+      {% endif %}
+    </div>
+    {% if retroativo_ativo %}
+    <div class="text-warning small d-flex align-items-center gap-1">
+      <i class="bi bi-unlock-fill"></i>
+      Retroativo liberado — expira em <strong class="ms-1" id="countdownText"></strong>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Remoções em andamento -->
+{% if remocoes_andamento %}
+<div class="card border-warning mb-4 shadow-sm">
+  <div class="card-header bg-warning bg-opacity-10 d-flex align-items-center gap-2">
+    <span class="badge bg-warning text-dark">● EM ANDAMENTO</span>
+    <strong class="fs-6">{{ remocoes_andamento|length }} remoção(ões) em curso</strong>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0 tbl-remocoes">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width:50px">#</th>
+            <th style="min-width:85px">Data</th>
+            <th style="min-width:160px">Paciente</th>
+            <th style="min-width:170px">Origem</th>
+            <th style="min-width:170px">Destino</th>
+            <th style="min-width:95px">Ambulância</th>
+            <th style="min-width:60px">Saída</th>
+            <th style="min-width:75px">KM Inicial</th>
+            <th style="min-width:110px">Aberto por</th>
+            <th style="min-width:100px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in remocoes_andamento %}
+          <tr class="table-warning">
+            <td><strong>{{ r.numero_transporte }}</strong></td>
+            <td>{{ r.data|databr if r.data else '—' }}</td>
+            <td title="{{ r.nome_paciente }}">{{ r.nome_paciente }}</td>
+            <td title="{{ r.unidade_origem }}">{{ r.unidade_origem }}</td>
+            <td title="{{ r.unidade_destino }}">{{ r.unidade_destino }}</td>
+            <td>{{ r.ambulancia }}</td>
+            <td>{{ r.hora_saida }}</td>
+            <td>{{ r.km_inicial|int if r.km_inicial else '—' }}</td>
+            <td>{{ r.responsavel or '—' }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('remocoes.editar_remocao', id=r.id) }}"
+                   class="btn btn-sm btn-outline-primary py-0 px-2"
+                   title="Ver / editar detalhes">
+                  <i class="bi bi-eye"></i>
+                </a>
+                <button class="btn btn-sm btn-success py-0 px-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#modalFinalizar"
+                        data-id="{{ r.id }}"
+                        data-num="{{ r.numero_transporte }}"
+                        data-paciente="{{ r.nome_paciente }}"
+                        data-km-inicial="{{ r.km_inicial|int if r.km_inicial else 0 }}">
+                  Finalizar
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Filtros -->
+<div class="card mb-3">
+  <form method="get">
+    <!-- Barra básica -->
+    <div class="card-body py-2">
+      <div class="row g-2 align-items-center">
+        <div class="col">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" name="search" class="form-control" placeholder="Paciente, origem, destino..." value="{{ search }}">
+          </div>
+        </div>
+        <div class="col-auto">
+          <input type="date" name="data_ini" class="form-control form-control-sm" value="{{ data_ini }}" title="Data inicial">
+        </div>
+        <div class="col-auto">
+          <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ data_fim }}" title="Data final">
+        </div>
+        <div class="col-auto d-flex gap-2 align-items-center">
+          <button class="btn btn-primary btn-sm">Filtrar</button>
+          <a href="{{ url_for('remocoes.index') }}" class="btn btn-outline-secondary btn-sm">Limpar</a>
+          <button type="button"
+                  class="btn btn-sm {% if equipe or profissional %}btn-info text-white{% else %}btn-outline-secondary{% endif %}"
+                  data-bs-toggle="collapse" data-bs-target="#filtros-avancados"
+                  title="Pesquisa avançada">
+            <i class="bi bi-sliders"></i>
+            {% if equipe or profissional %}<span class="ms-1" style="font-size:.7rem">●</span>{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Pesquisa avançada colapsável -->
+    <div class="collapse {% if equipe or profissional %}show{% endif %}" id="filtros-avancados">
+      <div class="card-footer bg-light border-top py-2">
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <small class="text-muted fw-semibold text-uppercase" style="font-size:.65rem; letter-spacing:.05em">Pesquisa avançada</small>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label mb-1" style="font-size:.8rem">Equipe</label>
+            <select name="equipe" class="form-select form-select-sm">
+              <option value="">Todas</option>
+              <option value="Equipe 1" {% if equipe == 'Equipe 1' %}selected{% endif %}>Equipe 1</option>
+              <option value="Equipe 2" {% if equipe == 'Equipe 2' %}selected{% endif %}>Equipe 2</option>
+              <option value="Equipe 3" {% if equipe == 'Equipe 3' %}selected{% endif %}>Equipe 3</option>
+              <option value="Extra"    {% if equipe == 'Extra'    %}selected{% endif %}>Extra</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label mb-1" style="font-size:.8rem">Profissional</label>
+            <select name="profissional" class="form-select form-select-sm">
+              <option value="">Todos</option>
+              {% for p in profissionais %}
+              <option value="{{ p.nome }}" {% if profissional == p.nome %}selected{% endif %}>{{ p.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Tabela -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-table me-2"></i>Registros</span>
+    <span class="badge bg-secondary">{{ total }} registro(s)</span>
+  </div>
+  <div class="card-body p-0">
+    {% if remocoes %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 tbl-remocoes">
+        <thead>
+          <tr>
+            <th style="min-width:50px">Nº</th>
+            <th style="min-width:85px">Data</th>
+            <th style="min-width:160px">Paciente</th>
+            <th style="min-width:65px">Idade</th>
+            <th style="min-width:170px">Origem</th>
+            <th style="min-width:170px">Destino</th>
+            <th style="min-width:95px">Ambulância</th>
+            <th style="min-width:60px">Saída</th>
+            <th style="min-width:65px">Retorno</th>
+            <th style="min-width:65px">Tempo</th>
+            <th style="min-width:75px">KM Total</th>
+            <th style="min-width:140px">Médico</th>
+            <th style="min-width:140px">Enfermeiro</th>
+            <th style="min-width:140px">Condutor</th>
+            <th style="min-width:110px">Responsável</th>
+            <th style="min-width:85px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in remocoes %}
+          <tr>
+            <td><strong>#{{ r.numero_transporte or r.id }}</strong></td>
+            <td>{{ r.data|databr or '—' }}</td>
+            <td title="{{ r.nome_paciente or '' }}">
+              {{ r.nome_paciente or '—' }}
+            </td>
+            <td>{{ r.idade or '—' }}{% if r.idade and r.idade_unidade %} {{ r.idade_unidade | upper }}{% endif %}</td>
+            <td title="{{ r.unidade_origem or '' }}">{{ r.unidade_origem or '—' }}</td>
+            <td title="{{ r.unidade_destino or '' }}">{{ r.unidade_destino or '—' }}</td>
+            <td>{{ r.ambulancia or '—' }}</td>
+            <td>{{ r.hora_saida or '—' }}</td>
+            <td>{{ r.hora_retorno or '—' }}</td>
+            <td>{{ r.tempo_total or '—' }}</td>
+            <td>{{ r.km_total|int if r.km_total else 0 }} km</td>
+            <td title="{{ r.medico or '' }}">
+              {% if r.medico %}
+                {{ r.medico }}
+                {% if r.medico_equipe %}<span class="badge-equipe ms-1">{{ r.medico_equipe }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td title="{{ r.enfermeiro or '' }}">
+              {% if r.enfermeiro %}
+                {{ r.enfermeiro }}
+                {% if r.enfermeiro_equipe %}<span class="badge-equipe ms-1">{{ r.enfermeiro_equipe }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td title="{{ r.condutor or '' }}">
+              {% if r.condutor %}
+                {{ r.condutor }}
+                {% if r.condutor_equipe %}<span class="badge-equipe ms-1">{{ r.condutor_equipe }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ r.responsavel or '—' }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('remocoes.editar_remocao', id=r.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <a href="{{ url_for('remocoes.imprimir_remocao', id=r.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Imprimir" target="_blank">
+                  <i class="bi bi-printer"></i>
+                </a>
+                <form method="post" action="{{ url_for('remocoes.excluir_remocao', id=r.id) }}" onsubmit="return confirm('Excluir esta remoção?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger py-0 px-2"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+      Nenhuma remoção encontrada.
+    </div>
+    {% endif %}
+  </div>
+</div>
+<!-- Paginação -->
+{% if total_pages > 1 %}
+<div class="d-flex align-items-center justify-content-between mt-3 px-1">
+  <small class="text-muted">
+    Exibindo {{ ((page-1)*20)+1 }}–{{ [page*20, total]|minval }} de <strong>{{ total }}</strong> registros
+  </small>
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if page == 1 %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page-1 }}&search={{ search }}&data_ini={{ data_ini }}&data_fim={{ data_fim }}&equipe={{ equipe }}&profissional={{ profissional }}">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      </li>
+      {% set start = [1, page-2]|max %}
+      {% set end   = [total_pages, page+2]|min %}
+      {% if start > 1 %}
+        <li class="page-item"><a class="page-link" href="?page=1&search={{ search }}&data_ini={{ data_ini }}&data_fim={{ data_fim }}&equipe={{ equipe }}&profissional={{ profissional }}">1</a></li>
+        {% if start > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+      {% endif %}
+      {% for p in range(start, end+1) %}
+      <li class="page-item {% if p == page %}active{% endif %}">
+        <a class="page-link" href="?page={{ p }}&search={{ search }}&data_ini={{ data_ini }}&data_fim={{ data_fim }}&equipe={{ equipe }}&profissional={{ profissional }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+      {% if end < total_pages %}
+        {% if end < total_pages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+        <li class="page-item"><a class="page-link" href="?page={{ total_pages }}&search={{ search }}&data_ini={{ data_ini }}&data_fim={{ data_fim }}&equipe={{ equipe }}&profissional={{ profissional }}">{{ total_pages }}</a></li>
+      {% endif %}
+      <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ page+1 }}&search={{ search }}&data_ini={{ data_ini }}&data_fim={{ data_fim }}&equipe={{ equipe }}&profissional={{ profissional }}">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+{% else %}
+<div class="mt-2 px-1">
+  <small class="text-muted">{{ total }} registro(s) no total</small>
+</div>
+{% endif %}
+{% if retroativo_ativo %}
+<script>
+(function() {
+  const expira = new Date("{{ retroativo_ate.strftime('%Y-%m-%dT%H:%M:%S') }}");
+  function atualizarCountdown() {
+    const diff = Math.max(0, Math.floor((expira - new Date()) / 1000));
+    const min  = Math.floor(diff / 60);
+    const seg  = String(diff % 60).padStart(2, '0');
+    const txt  = min + 'm ' + seg + 's';
+    const el   = document.getElementById('countdownText');
+    const badge = document.getElementById('countdownBadge');
+    if (el) el.textContent = txt;
+    if (badge) badge.textContent = txt;
+    if (diff === 0) location.reload();
+  }
+  atualizarCountdown();
+  setInterval(atualizarCountdown, 1000);
+})();
+</script>
+{% endif %}
+
+<!-- Modal Finalizar Remoção -->
+<div class="modal fade" id="modalFinalizar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="POST" id="formFinalizar" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title">Finalizar Remoção</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            Remoção <strong id="modalNum"></strong> — <span id="modalPaciente"></span>
+          </p>
+          <div class="mb-3">
+            <label class="form-label">Hora de Retorno *</label>
+            <input type="time" name="hora_retorno" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">KM Final *</label>
+            <input type="number" name="km_final" class="form-control" min="0" step="1" required>
+            <div class="form-text">KM inicial: <span id="modalKmInicial"></span></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Desfecho da Remoção</label>
+            <div class="d-flex flex-column gap-1">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="desfecho" value="normal" id="d_normal" checked>
+                <label class="form-check-label" for="d_normal">Remoção realizada ✓</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="desfecho" value="obito" id="d_obito">
+                <label class="form-check-label text-danger" for="d_obito">Óbito</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="desfecho" value="contraindicacao" id="d_contra">
+                <label class="form-check-label text-warning" for="d_contra">Contraindicação médica</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="desfecho" value="recusa" id="d_recusa">
+                <label class="form-check-label text-secondary" for="d_recusa">Recusa familiar</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observação</label>
+            <textarea name="observacao" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Finalizar Remoção</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('modalFinalizar').addEventListener('show.bs.modal', function(e) {
+  const btn = e.relatedTarget;
+  document.getElementById('formFinalizar').action = '/remocoes/' + btn.dataset.id + '/finalizar';
+  document.getElementById('modalNum').textContent = btn.dataset.num;
+  document.getElementById('modalPaciente').textContent = btn.dataset.paciente;
+  document.getElementById('modalKmInicial').textContent = btn.dataset.kmInicial;
+  document.getElementById('d_normal').checked = true;
+  this.querySelector('input[name="hora_retorno"]').value = '';
+  this.querySelector('input[name="km_final"]').value = '';
+  this.querySelector('textarea[name="observacao"]').value = '';
+});
+</script>
+
+{% endblock %}

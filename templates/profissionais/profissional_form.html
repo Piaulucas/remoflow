@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <h1>{% if profissional %}Editar Profissional{% else %}Novo Profissional{% endif %}</h1>
+  <p>{% if profissional %}Atualize os dados do profissional{% else %}Preencha os dados para cadastrar um novo profissional{% endif %}</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <i class="bi bi-person-badge me-2"></i>Dados do Profissional
+  </div>
+  <div class="card-body">
+    {% if erro %}
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ erro }}</span>
+    </div>
+    {% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Identificação -->
+      <div class="section-title">Identificação</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label">Nome Completo <span class="text-danger">*</span></label>
+          <input type="text" name="nome" class="form-control" required
+                 value="{{ profissional.nome if profissional else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">CPF <span class="text-muted fw-normal">(opcional)</span></label>
+          <input type="text" name="cpf" class="form-control" id="cpf" maxlength="14" placeholder="000.000.000-00"
+                 value="{{ profissional.cpf if profissional else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Especialidade <span class="text-danger">*</span></label>
+          <select name="especialidade" id="especialidade" class="form-select" required>
+            <option value="">Selecione...</option>
+            {% for e in especialidades %}
+            <option value="{{ e }}" {% if profissional and profissional.especialidade == e %}selected{% endif %}>{{ e }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Conselho (dinâmico) -->
+      <div class="row g-3 mb-4" id="row-conselho">
+        <div class="col-md-4">
+          <label class="form-label" id="label-conselho">Número de Conselho <span class="text-danger" id="asterisco-conselho">*</span></label>
+          <input type="text" name="numero_conselho" id="numero_conselho" class="form-control"
+                 value="{{ profissional.numero_conselho if profissional else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Telefone</label>
+          <input type="text" name="telefone" class="form-control" id="telefone" maxlength="15" placeholder="(00) 00000-0000"
+                 value="{{ profissional.telefone if profissional else '' }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="Ativo" {% if not profissional or profissional.status == 'Ativo' %}selected{% endif %}>Ativo</option>
+            <option value="Inativo" {% if profissional and profissional.status == 'Inativo' %}selected{% endif %}>Inativo</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Dados Bancários -->
+      <div class="section-title">Dados Bancários</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="form-label">Banco</label>
+          <input type="text" name="banco" class="form-control"
+                 value="{{ profissional.banco if profissional else '' }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Agência</label>
+          <input type="text" name="agencia" class="form-control"
+                 value="{{ profissional.agencia if profissional else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Conta</label>
+          <input type="text" name="conta" class="form-control"
+                 value="{{ profissional.conta if profissional else '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Chave PIX</label>
+          <input type="text" name="chave_pix" class="form-control"
+                 value="{{ profissional.chave_pix if profissional else '' }}">
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Salvar
+        </button>
+        <a href="{{ url_for('profissionais.profissionais') }}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const conselhos = { 'Médico': 'CRM', 'Enfermeiro': 'COREN', 'Condutor': 'CNH', 'Recepcionista': null };
+
+function atualizarConselho() {
+  const esp = document.getElementById('especialidade').value;
+  const inputConselho = document.getElementById('numero_conselho');
+  const colConselho = inputConselho.closest('.col-md-4');
+  const asterisco = document.getElementById('asterisco-conselho');
+
+  const labelTexto = conselhos[esp];
+  if (labelTexto) {
+    colConselho.style.display = '';
+    document.getElementById('label-conselho').firstChild.textContent = labelTexto + ' ';
+    inputConselho.required = true;
+    asterisco.style.display = '';
+  } else {
+    colConselho.style.display = 'none';
+    inputConselho.value = '';
+    inputConselho.required = false;
+    asterisco.style.display = 'none';
+  }
+}
+
+document.getElementById('especialidade').addEventListener('change', atualizarConselho);
+atualizarConselho();
+
+// Máscara CPF
+document.getElementById('cpf').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+  this.value = v;
+});
+
+// Máscara Telefone
+document.getElementById('telefone').addEventListener('input', function () {
+  let v = this.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 6) v = v.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+  else if (v.length > 0) v = v.replace(/^(\d{0,2})/, '($1');
+  this.value = v;
+});
+</script>
+{% endblock %}

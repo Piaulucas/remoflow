@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-cash-coin me-2"></i>Financeiro</h1>
+    <p>Cálculo de pagamento mensal dos profissionais</p>
+  </div>
+  {% if resumo %}
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('financeiro.financeiro_exportar', mes=mes, ano=ano) }}" class="btn btn-success">
+      <i class="bi bi-file-earmark-excel me-1"></i> Exportar Resumo
+    </a>
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-download"></i> Exportar por Classe
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('financeiro.financeiro_exportar_classe', classe='medico', mes=mes, ano=ano) }}">
+            <i class="bi bi-heart-pulse me-2 text-primary"></i>Exportar Médicos
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('financeiro.financeiro_exportar_classe', classe='enfermeiro', mes=mes, ano=ano) }}">
+            <i class="bi bi-bandaid me-2 text-success"></i>Exportar Enfermeiros
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('financeiro.financeiro_exportar_classe', classe='condutor', mes=mes, ano=ano) }}">
+            <i class="bi bi-truck me-2 text-warning"></i>Exportar Condutores
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Seletor de mês/ano -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Mês</label>
+        <select name="mes" class="form-select">
+          {% for n, nome in meses_lista %}
+          <option value="{{ n }}" {% if mes == n %}selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Ano</label>
+        <input type="number" name="ano" class="form-control"
+               value="{{ ano or ano_atual }}" min="2020" max="2099">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search me-1"></i>Visualizar
+        </button>
+      </div>
+      {% if resumo %}
+      <div class="col-auto ms-md-3">
+        <label class="form-label">Especialidade</label>
+        <div class="btn-group" id="filtroEsp" role="group">
+          <button type="button" class="btn btn-outline-secondary btn-sm active" data-esp="">Todos</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-esp="Médico">Médico</button>
+          <button type="button" class="btn btn-outline-success btn-sm" data-esp="Enfermeiro">Enfermeiro</button>
+          <button type="button" class="btn btn-outline-warning btn-sm" data-esp="Condutor">Condutor</button>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if resumo %}
+
+<!-- Cards de totais -->
+{% set tot_geral      = resumo | sum(attribute='total') %}
+{% set tot_plantoes   = resumo | sum(attribute='total_plantoes') %}
+{% set tot_hora_extra = resumo | sum(attribute='total_hora_extra') %}
+{% set tot_extras     = resumo | sum(attribute='total_extras') %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-primary-subtle text-primary"><i class="bi bi-people-fill"></i></div>
+      <div>
+        <div class="value" id="card-count" style="font-size:1.6rem">{{ resumo|length }}</div>
+        <div class="label">Profissionais</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-success-subtle text-success"><i class="bi bi-moon-stars-fill"></i></div>
+      <div>
+        <div class="value" id="card-plantoes" style="font-size:1.3rem">{{ tot_plantoes | brl }}</div>
+        <div class="label">Total Plantões</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-warning-subtle text-warning"><i class="bi bi-truck"></i></div>
+      <div>
+        <div class="value" id="card-extras" style="font-size:1.3rem">{{ tot_extras | brl }}</div>
+        <div class="label">Total Remoções Extras</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-info-subtle text-info"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="value" id="card-total" style="font-size:1.3rem">{{ tot_geral | brl }}</div>
+        <div class="label">Total Geral</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela resumo -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-table me-2"></i>Resumo — {{ mes_nome }} / {{ ano }}</span>
+    <span class="badge bg-primary" id="resumo-badge">{{ resumo|length }} profissionais</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Especialidade</th>
+          <th class="text-center">Plantões</th>
+          <th class="text-end">Valor Plantões</th>
+          <th class="text-end">Hora Extra</th>
+          <th class="text-center">Rem. Extras</th>
+          <th class="text-end">Total Extras</th>
+          <th class="text-end fw-semibold">Total a Receber</th>
+          <th class="text-center" title="Condutor com salário fixo Equipe 1">Escala Fixa</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set cores_esp = {'Médico': 'primary', 'Enfermeiro': 'success', 'Condutor': 'warning'} %}
+        {% set icones_esp = {'Médico': 'heart-pulse', 'Enfermeiro': 'bandaid', 'Condutor': 'truck'} %}
+        {% for esp in ['Médico', 'Enfermeiro', 'Condutor'] %}
+          {% set grupo = resumo | selectattr('especialidade', 'equalto', esp) | list %}
+          {% if grupo %}
+          <tr class="esp-header table-light" data-esp="{{ esp }}">
+            <td colspan="9" class="py-2 ps-3 fw-semibold" style="font-size:0.78rem;letter-spacing:.04em;text-transform:uppercase;color:var(--bs-{{ cores_esp.get(esp, 'secondary') }});">
+              <i class="bi bi-{{ icones_esp.get(esp, 'person') }} me-1"></i>{{ esp }}
+              <span class="badge bg-{{ cores_esp.get(esp, 'secondary') }} bg-opacity-10 text-{{ cores_esp.get(esp, 'secondary') }} border border-{{ cores_esp.get(esp, 'secondary') }}-subtle ms-2" style="font-size:0.7rem;">{{ grupo|length }}</span>
+            </td>
+          </tr>
+          {% for p in grupo %}
+          <tr data-especialidade="{{ p.especialidade }}"
+              data-total="{{ p.total }}"
+              data-plantoes="{{ p.total_plantoes }}"
+              data-hora-extra="{{ p.total_hora_extra }}"
+              data-extras="{{ p.total_extras }}">
+            <td class="fw-medium">{{ p.nome }}</td>
+            <td>
+              {% if p.especialidade == 'Médico' %}
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Médico</span>
+              {% elif p.especialidade == 'Enfermeiro' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Enfermeiro</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Condutor</span>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ p.num_plantoes or '—' }}</td>
+            <td class="text-end">{{ p.total_plantoes | brl }}</td>
+            <td class="text-end">
+              {% if p.total_hora_extra > 0 %}
+                <span class="text-warning fw-medium">{{ p.total_hora_extra | brl }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-center">{{ p.num_extras or '—' }}</td>
+            <td class="text-end">{{ p.total_extras | brl }}</td>
+            <td class="text-end fw-bold text-success">{{ p.total | brl }}</td>
+            <td class="text-center">
+              {% if p.especialidade == 'Condutor' %}
+              <div class="form-check d-flex justify-content-center mb-0">
+                <input class="form-check-input escala-fixa-cb" type="checkbox"
+                       data-nome="{{ p.nome }}" data-mes="{{ mes }}" data-ano="{{ ano }}"
+                       {% if p.nome in escala_fixa_set %}checked{% endif %}
+                       title="Marcar como Escala Fixa (salário E1)">
+              </div>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('financeiro.financeiro_detalhe', nome=p.nome, mes=mes, ano=ano) }}"
+                 class="btn btn-sm btn-outline-primary py-0 px-2" title="Ver detalhe">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+          {% endif %}
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-active fw-bold">
+          <td colspan="3" class="text-end">Totais</td>
+          <td class="text-end" id="tf-plantoes">{{ tot_plantoes | brl }}</td>
+          <td class="text-end" id="tf-hora-extra">{{ tot_hora_extra | brl }}</td>
+          <td class="text-center">—</td>
+          <td class="text-end" id="tf-extras">{{ tot_extras | brl }}</td>
+          <td class="text-end text-success" id="tf-total">{{ tot_geral | brl }}</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% elif mes %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>
+  Nenhuma remoção encontrada para <strong>{{ mes_nome }} / {{ ano }}</strong>.
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if resumo %}
+<script>
+  function formatBRL(v) {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function recalcTotals(esp) {
+    let count = 0, plantoes = 0, horaExtra = 0, extras = 0, total = 0;
+    document.querySelectorAll('tbody tr[data-especialidade]').forEach(function(row) {
+      if (!esp || row.dataset.especialidade === esp) {
+        count++;
+        plantoes  += parseFloat(row.dataset.plantoes)   || 0;
+        horaExtra += parseFloat(row.dataset.horaExtra)  || 0;
+        extras    += parseFloat(row.dataset.extras)     || 0;
+        total     += parseFloat(row.dataset.total)      || 0;
+      }
+    });
+    document.getElementById('card-count').textContent    = count;
+    document.getElementById('card-plantoes').textContent = formatBRL(plantoes);
+    document.getElementById('card-extras').textContent   = formatBRL(extras);
+    document.getElementById('card-total').textContent    = formatBRL(total);
+    document.getElementById('tf-plantoes').textContent   = formatBRL(plantoes);
+    document.getElementById('tf-hora-extra').textContent = formatBRL(horaExtra);
+    document.getElementById('tf-extras').textContent     = formatBRL(extras);
+    document.getElementById('tf-total').textContent      = formatBRL(total);
+    document.getElementById('resumo-badge').textContent  = count + ' profissionais';
+  }
+
+  document.querySelectorAll('.escala-fixa-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+      fetch('{{ url_for("financeiro.toggle_escala_fixa") }}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          nome: this.dataset.nome,
+          mes:  parseInt(this.dataset.mes),
+          ano:  parseInt(this.dataset.ano),
+        }),
+      })
+      .then(r => {
+        if (!r.ok) { console.error('Erro HTTP toggle:', r.status, r.url); }
+        return r.json();
+      })
+      .then(data => {
+        console.log('Resposta toggle:', data);
+        location.reload();
+      })
+      .catch(err => {
+        console.error('Erro toggle:', err);
+        location.reload();
+      });
+    });
+  });
+
+  document.getElementById('filtroEsp').addEventListener('click', function(e) {
+    const btn = e.target.closest('button[data-esp]');
+    if (!btn) return;
+    this.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    const esp = btn.dataset.esp;
+    document.querySelectorAll('tbody tr[data-especialidade]').forEach(function(row) {
+      row.style.display = (!esp || row.dataset.especialidade === esp) ? '' : 'none';
+    });
+    document.querySelectorAll('tbody tr.esp-header').forEach(function(header) {
+      header.style.display = (!esp || header.dataset.esp === esp) ? '' : 'none';
+    });
+    recalcTotals(esp);
+  });
+</script>
+{% endif %}
+{% endblock %}

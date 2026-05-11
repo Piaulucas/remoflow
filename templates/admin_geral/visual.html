@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RemoFlow — Visual da Empresa</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #060d1f; color: #e2e8f0; padding: 2rem 1rem; min-height: 100vh; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 2rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .brand-title { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .brand-title span { color: #4d9fff; }
+    .subtitle { font-size: 0.78rem; color: #475569; margin-top: 0.15rem; }
+
+    .btn-back {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #94a3b8;
+      font-size: 0.82rem; padding: 0.45rem 0.9rem;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+    .visual-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 2rem;
+      max-width: 560px;
+    }
+    .visual-card h5 {
+      font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.25rem;
+    }
+    .visual-card .subtitle-card { font-size: 0.8rem; color: #475569; margin-bottom: 1.75rem; }
+
+    .form-label { font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-bottom: 4px; }
+    .form-control {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #f1f5f9;
+      font-size: 0.875rem; padding: 0.6rem 0.75rem;
+    }
+    .form-control:focus {
+      background: rgba(255,255,255,0.09);
+      border-color: #1400FF;
+      box-shadow: 0 0 0 3px rgba(20,0,255,0.2);
+      color: #f1f5f9;
+    }
+    .form-control::placeholder { color: #475569; }
+    .form-text { font-size: 0.72rem; color: #475569; }
+
+    /* Color picker row */
+    .color-row {
+      display: flex; align-items: center; gap: 0.75rem;
+    }
+    .color-row input[type="color"] {
+      width: 48px; height: 38px; padding: 2px 4px;
+      border-radius: 8px; cursor: pointer;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .color-hex {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #f1f5f9;
+      font-size: 0.85rem; font-family: monospace;
+      padding: 0.5rem 0.75rem; width: 110px;
+    }
+    .color-preview {
+      width: 38px; height: 38px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;
+    }
+
+    /* Logo preview */
+    .logo-preview {
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 80px; margin-bottom: 0.75rem;
+    }
+    .logo-preview img { max-height: 60px; max-width: 220px; object-fit: contain; }
+    .logo-placeholder { color: #475569; font-size: 0.8rem; }
+
+    .btn-save {
+      background: linear-gradient(135deg, #1400FF 0%, #0060ff 100%);
+      border: none; border-radius: 8px; color: #fff;
+      font-weight: 600; font-size: 0.875rem; padding: 0.6rem 1.5rem;
+      box-shadow: 0 4px 16px rgba(20,0,255,0.35);
+      transition: all 0.2s;
+    }
+    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(20,0,255,0.5); color: #fff; }
+
+    .alert { font-size: 0.82rem; border-radius: 10px; margin-bottom: 1.5rem; }
+    .alert-success { background: rgba(0,200,100,0.1); border: 1px solid rgba(0,200,100,0.2); color: #6ee7b7; }
+    .alert-danger  { background: rgba(224,0,0,0.1);   border: 1px solid rgba(224,0,0,0.2);   color: #fca5a5; }
+    .alert-warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+
+    .section-divider {
+      border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 1.5rem 0;
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid" style="max-width: 700px;">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}-fill"></i>
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="page-header">
+    <div>
+      <div class="brand-title">Remo<span>Flow</span></div>
+      <div class="subtitle">
+        <i class="bi bi-palette me-1"></i>Visual — {{ empresa.nome }}
+      </div>
+    </div>
+    <a href="{{ url_for('admin_geral.admin_geral') }}" class="btn-back">
+      <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
+
+  <div class="visual-card">
+    <h5><i class="bi bi-palette2 me-2"></i>Identidade Visual</h5>
+    <div class="subtitle-card">Cores e logo exibidos na sidebar para os usuários da empresa.</div>
+
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Cor primária -->
+      <div class="mb-4">
+        <label class="form-label">Cor primária (sidebar, botões, links)</label>
+        <div class="color-row">
+          <input type="color" id="corPrimaria" name="cor_primaria"
+                 value="{{ config.cor_primaria if config else '#1400FF' }}">
+          <input type="text" id="corPrimariaHex" class="color-hex"
+                 value="{{ config.cor_primaria if config else '#1400FF' }}"
+                 maxlength="7" placeholder="#1400FF">
+          <div class="color-preview" id="previewPrimaria"
+               style="background: {{ config.cor_primaria if config else '#1400FF' }};"></div>
+        </div>
+      </div>
+
+      <!-- Cor secundária -->
+      <div class="mb-4">
+        <label class="form-label">Cor secundária (alertas, destaque vermelho)</label>
+        <div class="color-row">
+          <input type="color" id="corSecundaria" name="cor_secundaria"
+                 value="{{ config.cor_secundaria if config else '#E00000' }}">
+          <input type="text" id="corSecundariaHex" class="color-hex"
+                 value="{{ config.cor_secundaria if config else '#E00000' }}"
+                 maxlength="7" placeholder="#E00000">
+          <div class="color-preview" id="previewSecundaria"
+               style="background: {{ config.cor_secundaria if config else '#E00000' }};"></div>
+        </div>
+      </div>
+
+      <!-- Cor principal dos relatórios -->
+      <div class="mb-4">
+        <label class="form-label">Cor principal dos relatórios (Excel e PDF)</label>
+        <div class="color-row">
+          <input type="color" id="corPrincipal" name="cor_principal"
+                 value="{{ config.cor_principal if config and config.cor_principal else '#1400FF' }}">
+          <input type="text" id="corPrincipalHex" class="color-hex"
+                 value="{{ config.cor_principal if config and config.cor_principal else '#1400FF' }}"
+                 maxlength="7" placeholder="#1400FF">
+          <div class="color-preview" id="previewPrincipal"
+               style="background: {{ config.cor_principal if config and config.cor_principal else '#1400FF' }};"></div>
+        </div>
+        <div class="form-text mt-1">Usada no cabeçalho dos arquivos Excel e PDF exportados.</div>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- Logo -->
+      <div class="mb-4">
+        <label class="form-label">Logo da empresa</label>
+
+        {% if config and config.logo_empresa %}
+        <div class="logo-preview">
+          <img src="/static/{{ config.logo_empresa }}" alt="Logo atual">
+        </div>
+        <div class="form-text mb-2">Logo atual: <code style="color:#7db5ff;">{{ config.logo_empresa }}</code></div>
+        {% else %}
+        <div class="logo-preview">
+          <span class="logo-placeholder"><i class="bi bi-image me-1"></i>Nenhum logo enviado</span>
+        </div>
+        {% endif %}
+
+        <input type="file" name="logo" id="logoInput" class="form-control"
+               accept=".png,.jpg,.jpeg,.svg">
+        <div class="form-text">PNG, JPG, JPEG ou SVG. Máximo 2 MB.</div>
+
+        <button type="button" id="btnSugerirCores"
+                style="display:none; background:rgba(77,159,255,0.15); border:1px solid rgba(77,159,255,0.3);
+                       border-radius:8px; color:#4d9fff; font-size:0.8rem; padding:0.4rem 0.9rem;
+                       cursor:pointer; transition:all 0.2s; margin-top:0.5rem;">
+          <span id="btnSugerirIcon"><i class="bi bi-palette-fill me-1"></i></span>
+          Sugerir cores a partir do logo
+        </button>
+
+        <div id="avisoSugestao" style="display:none; font-size:0.75rem; margin-top:0.5rem;"></div>
+
+        <div id="logoPreviewNovo" style="display:none; margin-top:0.75rem;">
+          <div class="logo-preview">
+            <img id="logoPreviewImg" src="" alt="Preview"
+                 style="max-height:60px; max-width:220px; object-fit:contain;">
+          </div>
+          <div style="font-size:0.72rem; color:#475569; margin-top:4px;">Preview do logo selecionado</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-save">
+        <i class="bi bi-check-lg me-1"></i>Salvar visual
+      </button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ── Sync color picker ↔ hex input ↔ preview ──────────────────────────────
+  function syncColor(pickerId, hexId, previewId) {
+    const picker  = document.getElementById(pickerId);
+    const hex     = document.getElementById(hexId);
+    const preview = document.getElementById(previewId);
+
+    picker.addEventListener('input', () => {
+      hex.value = picker.value;
+      preview.style.background = picker.value;
+    });
+    hex.addEventListener('input', () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) {
+        picker.value = hex.value;
+        preview.style.background = hex.value;
+      }
+    });
+  }
+
+  syncColor('corPrimaria',   'corPrimariaHex',   'previewPrimaria');
+  syncColor('corSecundaria', 'corSecundariaHex', 'previewSecundaria');
+  syncColor('corPrincipal',  'corPrincipalHex',  'previewPrincipal');
+
+  // ── Helpers para atualizar um par picker+hex+preview ─────────────────────
+  function aplicarCor(pickerId, hexId, previewId, valor) {
+    document.getElementById(pickerId).value = valor;
+    document.getElementById(hexId).value    = valor;
+    document.getElementById(previewId).style.background = valor;
+  }
+
+  // ── Preview do logo selecionado ───────────────────────────────────────────
+  const logoInput      = document.getElementById('logoInput');
+  const btnSugerir     = document.getElementById('btnSugerirCores');
+  const logoPreviewDiv = document.getElementById('logoPreviewNovo');
+  const logoPreviewImg = document.getElementById('logoPreviewImg');
+  const avisoSugestao  = document.getElementById('avisoSugestao');
+
+  logoInput.addEventListener('change', () => {
+    const file = logoInput.files[0];
+    if (!file) {
+      btnSugerir.style.display    = 'none';
+      logoPreviewDiv.style.display = 'none';
+      return;
+    }
+    btnSugerir.style.display   = 'inline-block';
+    avisoSugestao.style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      logoPreviewImg.src           = e.target.result;
+      logoPreviewDiv.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ── Sugestão automática de cores ─────────────────────────────────────────
+  btnSugerir.addEventListener('click', async () => {
+    const file = logoInput.files[0];
+    if (!file) return;
+
+    const iconEl = document.getElementById('btnSugerirIcon');
+    iconEl.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid #4d9fff;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;"></span>';
+    btnSugerir.disabled         = true;
+    avisoSugestao.style.display = 'none';
+
+    try {
+      const fd = new FormData();
+      fd.append('logo', file);
+      const csrfInput = document.querySelector('input[name="csrf_token"]');
+      if (csrfInput) fd.append('csrf_token', csrfInput.value);
+
+      const resp = await fetch('{{ url_for("admin_geral.extrair_cores_logo") }}', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await resp.json();
+
+      if (data.cor_primaria) {
+        aplicarCor('corPrimaria',  'corPrimariaHex',  'previewPrimaria',  data.cor_primaria);
+        aplicarCor('corPrincipal', 'corPrincipalHex', 'previewPrincipal', data.cor_primaria);
+      }
+      if (data.cor_secundaria) {
+        aplicarCor('corSecundaria', 'corSecundariaHex', 'previewSecundaria', data.cor_secundaria);
+      }
+
+      if (data.aviso) {
+        avisoSugestao.style.color   = '#fde68a';
+        avisoSugestao.textContent   = '⚠ ' + data.aviso;
+        avisoSugestao.style.display = 'block';
+      } else {
+        avisoSugestao.style.color   = '#6ee7b7';
+        avisoSugestao.textContent   = '✓ Cores sugeridas aplicadas. Ajuste se necessário antes de salvar.';
+        avisoSugestao.style.display = 'block';
+      }
+    } catch (err) {
+      avisoSugestao.style.color   = '#fca5a5';
+      avisoSugestao.textContent   = '✗ Erro ao extrair cores. Defina manualmente.';
+      avisoSugestao.style.display = 'block';
+    } finally {
+      iconEl.innerHTML    = '<i class="bi bi-palette-fill me-1"></i>';
+      btnSugerir.disabled = false;
+    }
+  });
+
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

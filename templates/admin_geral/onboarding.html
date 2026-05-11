@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RemoFlow — Novo Cliente</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #060d1f; color: #e2e8f0; padding: 2rem 1rem; min-height: 100vh; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 2rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .brand-title { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .brand-title span { color: #4d9fff; }
+    .subtitle { font-size: 0.78rem; color: #475569; margin-top: 0.15rem; }
+
+    .btn-back {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #94a3b8;
+      font-size: 0.82rem; padding: 0.45rem 0.9rem;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+
+    /* ── Steps ── */
+    .steps {
+      display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem;
+    }
+    .step {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.82rem; font-weight: 600; color: #475569;
+    }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.78rem; font-weight: 700; color: #64748b;
+      flex-shrink: 0;
+    }
+    .step.done .step-num   { background: rgba(0,200,100,0.15); border-color: rgba(0,200,100,0.3); color: #34d399; }
+    .step.active .step-num { background: rgba(20,0,255,0.3); border-color: rgba(20,0,255,0.6); color: #818cf8; }
+    .step.active            { color: #e2e8f0; }
+    .step-sep { flex: 1; height: 1px; background: rgba(255,255,255,0.08); margin: 0 0.75rem; min-width: 32px; }
+
+    /* ── Card ── */
+    .wizard-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 2rem;
+      max-width: 600px;
+    }
+    .wizard-card h5 {
+      font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1.5rem;
+    }
+
+    .form-label { font-size: 0.8rem; color: #94a3b8; font-weight: 500; margin-bottom: 4px; }
+    .form-control, .form-select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #f1f5f9;
+      font-size: 0.875rem; padding: 0.6rem 0.75rem;
+    }
+    .form-control:focus, .form-select:focus {
+      background: rgba(255,255,255,0.09);
+      border-color: #1400FF;
+      box-shadow: 0 0 0 3px rgba(20,0,255,0.2);
+      color: #f1f5f9;
+    }
+    .form-control::placeholder { color: #475569; }
+    .form-text { font-size: 0.72rem; color: #475569; }
+
+    .btn-primary-wizard {
+      background: linear-gradient(135deg, #1400FF 0%, #0060ff 100%);
+      border: none; border-radius: 8px; color: #fff;
+      font-weight: 600; font-size: 0.85rem; padding: 0.55rem 1.4rem;
+      box-shadow: 0 4px 16px rgba(20,0,255,0.35);
+      transition: all 0.2s;
+    }
+    .btn-primary-wizard:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(20,0,255,0.5); color: #fff; }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #94a3b8;
+      font-size: 0.85rem; padding: 0.5rem 1rem;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.09); color: #e2e8f0; }
+
+    /* ── Summary ── */
+    .summary-row {
+      display: flex; gap: 0.5rem; align-items: baseline;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 0.6rem 0; font-size: 0.85rem;
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { color: #64748b; min-width: 140px; }
+    .summary-value { color: #e2e8f0; font-weight: 500; word-break: break-all; }
+
+    .badge-reutilizado {
+      font-size: 0.68rem; font-weight: 600; padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa;
+    }
+    .warning-box {
+      background: rgba(251,191,36,0.08);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 10px; padding: 0.75rem 1rem;
+      font-size: 0.8rem; color: #fde68a;
+    }
+    .btn-confirm {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      border: none; border-radius: 8px; color: #fff;
+      font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.75rem;
+      box-shadow: 0 4px 14px rgba(5,150,105,0.4);
+      transition: all 0.2s;
+    }
+    .btn-confirm:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(5,150,105,0.55); color: #fff; }
+
+    .alert { font-size: 0.82rem; border-radius: 10px; margin-bottom: 1.5rem; }
+    .alert-success { background: rgba(0,200,100,0.1); border: 1px solid rgba(0,200,100,0.2); color: #6ee7b7; }
+    .alert-danger  { background: rgba(224,0,0,0.1);   border: 1px solid rgba(224,0,0,0.2);   color: #fca5a5; }
+    .alert-warning { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); color: #fde68a; }
+  </style>
+</head>
+<body>
+<div class="container-fluid" style="max-width: 760px;">
+
+  <!-- Flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}-fill"></i>
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="brand-title">Remo<span>Flow</span></div>
+      <div class="subtitle"><i class="bi bi-person-plus me-1"></i>Onboarding — Novo Cliente</div>
+    </div>
+    <a href="{{ url_for('admin_geral.admin_geral') }}" class="btn-back">
+      <i class="bi bi-arrow-left me-1"></i>Cancelar
+    </a>
+  </div>
+
+  <!-- Progress steps -->
+  <div class="steps mb-4">
+    <div class="step {{ 'done' if passo > 1 else 'active' if passo == 1 else '' }}">
+      <div class="step-num">
+        {% if passo > 1 %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}
+      </div>
+      <span>Empresa</span>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step {{ 'done' if passo > 2 else 'active' if passo == 2 else '' }}">
+      <div class="step-num">
+        {% if passo > 2 %}<i class="bi bi-check-lg"></i>{% else %}2{% endif %}
+      </div>
+      <span>Usuário</span>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step {{ 'active' if passo == 3 else '' }}">
+      <div class="step-num">3</div>
+      <span>Confirmar</span>
+    </div>
+  </div>
+
+  <!-- ── PASSO 1 ── -->
+  {% if passo == 1 %}
+  <div class="wizard-card">
+    <h5><i class="bi bi-building me-2"></i>Dados da Empresa</h5>
+    <form method="post" action="{{ url_for('admin_geral.onboarding_passo1') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label">Nome da empresa <span class="text-danger">*</span></label>
+        <input type="text" name="nome" class="form-control"
+               value="{{ ob.empresa.nome if ob.empresa else '' }}"
+               placeholder="Ex: MedTransporte Bahia" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Slug <span class="text-danger">*</span></label>
+        <input type="text" name="slug" id="slugInput" class="form-control"
+               value="{{ ob.empresa.slug if ob.empresa else '' }}"
+               placeholder="ex: medtransporte-ba"
+               pattern="[a-z0-9\-]+" required
+               title="Letras minúsculas, números e hífen">
+        <div class="form-text">Apenas letras minúsculas, números e hífen. Usado na URL de login.</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">CNPJ</label>
+        <input type="text" name="cnpj" class="form-control"
+               value="{{ ob.empresa.cnpj if ob.empresa else '' }}"
+               placeholder="00.000.000/0001-00">
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn-primary-wizard">
+          Próximo <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── PASSO 2 ── -->
+  {% elif passo == 2 %}
+  <div class="wizard-card">
+    <h5><i class="bi bi-person-badge me-2"></i>Usuário Admin Inicial</h5>
+    <form method="post" action="{{ url_for('admin_geral.onboarding_passo2') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label">Nome completo <span class="text-danger">*</span></label>
+        <input type="text" name="nome" class="form-control"
+               value="{{ ob.usuario.nome if ob.usuario else '' }}"
+               placeholder="Ex: João da Silva" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">CPF <span class="text-danger">*</span></label>
+        <input type="text" name="cpf" class="form-control"
+               value="{{ ob.usuario.cpf if ob.usuario else '' }}"
+               placeholder="00000000000" maxlength="14" required>
+        <div class="form-text">Se o CPF já existir com o mesmo nome, o usuário será reutilizado.</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Senha temporária</label>
+        <input type="password" name="senha_temporaria" class="form-control"
+               placeholder="Obrigatória para novos usuários">
+        <div class="form-text">Deixe em branco apenas se o CPF já estiver cadastrado.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('admin_geral.onboarding_voltar') }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-ghost"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+        </form>
+        <button type="submit" class="btn-primary-wizard">
+          Próximo <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── PASSO 3 ── -->
+  {% elif passo == 3 %}
+  <div class="wizard-card">
+    <h5><i class="bi bi-clipboard-check me-2"></i>Confirmar e Ativar</h5>
+
+    <div class="mb-3">
+      <div class="summary-row">
+        <span class="summary-label">Empresa</span>
+        <span class="summary-value">{{ ob.empresa.nome }}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Slug</span>
+        <span class="summary-value" style="font-family:monospace; color:#7db5ff;">{{ ob.empresa.slug }}</span>
+      </div>
+      {% if ob.empresa.cnpj %}
+      <div class="summary-row">
+        <span class="summary-label">CNPJ</span>
+        <span class="summary-value">{{ ob.empresa.cnpj }}</span>
+      </div>
+      {% endif %}
+      <div class="summary-row">
+        <span class="summary-label">Usuário Admin</span>
+        <span class="summary-value">
+          {{ ob.usuario.nome }}
+          {% if ob.usuario.reutilizado %}
+          <span class="badge-reutilizado ms-1"><i class="bi bi-recycle me-1"></i>Usuário existente reutilizado</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">CPF</span>
+        <span class="summary-value" style="font-family:monospace;">
+          ***.***.***-{{ ob.usuario.cpf[-2:] }}
+        </span>
+      </div>
+    </div>
+
+    {% if not ob.usuario.reutilizado %}
+    <div class="warning-box mb-4">
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      O usuário será obrigado a trocar a senha no primeiro acesso.
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 align-items-center">
+      <form method="post" action="{{ url_for('admin_geral.onboarding_voltar') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-ghost"><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+      </form>
+      <form method="post" action="{{ url_for('admin_geral.onboarding_passo3') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-confirm">
+          <i class="bi bi-check2-circle me-1"></i>Ativar cliente
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const slugInput = document.getElementById('slugInput');
+  if (slugInput) {
+    slugInput.addEventListener('input', function () {
+      this.value = this.value.toLowerCase().replace(/[^a-z0-9\-]/g, '');
+    });
+  }
+</script>
+</body>
+</html>

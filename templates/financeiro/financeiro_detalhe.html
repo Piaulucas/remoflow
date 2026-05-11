@@ -1,0 +1,520 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+  .btn-exportar-pdf {
+    background: var(--cor-secundaria);
+    border-color: var(--cor-secundaria);
+    color: #fff;
+    font-weight: 500;
+  }
+  .btn-exportar-pdf:hover, .btn-exportar-pdf:focus {
+    filter: brightness(0.85);
+    color: #fff;
+    border-color: var(--cor-secundaria);
+  }
+  .resumo-final-card {
+    border: 2px solid var(--cor-primaria) !important;
+  }
+  .resumo-final-header {
+    background: var(--cor-primaria) !important;
+    color: #fff !important;
+  }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <a href="{{ url_for('financeiro.financeiro', mes=mes, ano=ano) }}" class="btn btn-sm btn-outline-secondary mb-2">
+      <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+    <h1><i class="bi bi-person-lines-fill me-2"></i>{{ fin.nome }}</h1>
+    <p>{{ fin.especialidade }} — {{ mes_nome }} / {{ ano }}</p>
+  </div>
+  <div class="mt-1 d-flex gap-2">
+    <a href="{{ url_for('financeiro.financeiro_exportar_pdf', nome=fin.nome, mes=mes, ano=ano) }}"
+       class="btn btn-exportar-pdf btn-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+    </a>
+    <a href="{{ url_for('financeiro.financeiro_exportar_individual', nome=fin.nome, mes=mes, ano=ano) }}"
+       class="btn btn-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+    </a>
+  </div>
+</div>
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-4">
+  {% if fin.especialidade in ('Médico', 'Enfermeiro') %}
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-primary-subtle text-primary"><i class="bi bi-moon-stars-fill"></i></div>
+      <div>
+        <div class="value" style="font-size:1.5rem">{{ fin.num_plantoes }}</div>
+        <div class="label">Plantões (Equipe 1)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-success-subtle text-success"><i class="bi bi-cash"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem">{{ fin.total_plantoes | brl }}</div>
+        <div class="label">Total Plantões</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-warning-subtle text-warning"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem">{{ fin.total_hora_extra | brl }}</div>
+        <div class="label">Total Hora Extra</div>
+      </div>
+    </div>
+  </div>
+  {% elif fin.cond_eq1 %}
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-primary-subtle text-primary"><i class="bi bi-moon-stars-fill"></i></div>
+      <div>
+        <div class="value" style="font-size:1.5rem">{{ fin.cond_eq1.num_plantoes }}</div>
+        <div class="label">Plantões (Equipe 1)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-success-subtle text-success"><i class="bi bi-cash"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem">{{ fin.cond_eq1.salario_base | brl }}</div>
+        <div class="label">Salário Base Líquido</div>
+      </div>
+    </div>
+  </div>
+  {% if fin.cond_eq1.total_hora_extra > 0 %}
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-warning-subtle text-warning"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem">{{ fin.cond_eq1.total_hora_extra | brl }}</div>
+        <div class="label">Total Hora Extra</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+  {% if fin.num_extras > 0 %}
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-info-subtle text-info"><i class="bi bi-truck"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem">{{ fin.total_extras | brl }}</div>
+        <div class="label">Total Extras ({{ fin.num_extras }} rem.)</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <div class="col-md-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="icon bg-success-subtle text-success"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="value" style="font-size:1.3rem fw-bold">{{ fin.total_final | brl }}</div>
+        <div class="label fw-bold">Total a Receber</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Plantões Equipe 1 ──────────────────────────────────────────────────── -->
+{% if fin.plantoes %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-moon-stars-fill me-2"></i>Plantões — Equipe 1</span>
+    <span class="text-success fw-semibold">
+      {{ fin.total_plantoes | brl }}
+      {% if fin.total_hora_extra > 0 %}
+        + {{ fin.total_hora_extra | brl }} hora extra
+      {% endif %}
+    </span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Data do Plantão</th>
+          <th class="text-center">Remoções</th>
+          <th class="text-end">Valor Fixo</th>
+          <th class="text-center">Min. Hora Extra</th>
+          <th class="text-end">Valor Hora Extra</th>
+          <th class="text-end fw-semibold">Total Plantão</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in fin.plantoes %}
+        <tr {% if p.from_escala %}style="background:#f0fdf4;"{% endif %}>
+          <td>
+            {{ p.data_fmt }}
+            {% if p.from_escala %}
+            <span class="ms-1" style="display:inline-block; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:4px; font-size:0.6rem; padding:1px 5px; vertical-align:middle;">escala</span>
+            {% endif %}
+          </td>
+          <td class="text-center">{{ p.num_remocoes }}</td>
+          <td class="text-end">{{ p.valor_fixo | brl }}</td>
+          <td class="text-center">
+            {% if p.min_extra > 0 %}
+              <span class="text-warning fw-medium">{{ p.min_extra | mins_to_hhmm }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if p.val_extra > 0 %}
+              <span class="text-warning fw-medium">{{ p.val_extra | brl }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end fw-semibold text-success">{{ p.valor_total | brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="table-active fw-bold">
+          <td colspan="4" class="text-end">Totais</td>
+          <td class="text-end text-warning">{{ fin.total_hora_extra | brl }}</td>
+          <td class="text-end text-success">{{ (fin.total_plantoes + fin.total_hora_extra) | brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── Condutor Equipe 1 ──────────────────────────────────────────────────── -->
+{% if fin.cond_eq1 %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-moon-stars-fill me-2"></i>Equipe 1 — Salário Mensal</span>
+    <span class="text-success fw-semibold">{{ fin.cond_eq1.total | brl }}</span>
+  </div>
+  <div class="px-3 pt-3 pb-2">
+    <table class="table table-sm mb-0" style="font-size:0.85rem; max-width:420px;">
+      <tbody>
+        <tr>
+          <td class="text-muted">Salário fixo</td>
+          <td class="text-end">{{ fin.cond_eq1.salario_fixo | brl }}</td>
+        </tr>
+        <tr>
+          <td class="text-muted">Desconto alimentação ({{ fin.cond_eq1.num_plantoes }}× R$80,00)</td>
+          <td class="text-end text-danger">− {{ fin.cond_eq1.desconto_alim | brl }}</td>
+        </tr>
+        <tr class="fw-semibold">
+          <td>Salário base líquido</td>
+          <td class="text-end text-success">{{ fin.cond_eq1.salario_base | brl }}</td>
+        </tr>
+        {% if fin.cond_eq1.total_hora_extra > 0 %}
+        <tr>
+          <td class="text-muted">Hora extra</td>
+          <td class="text-end text-warning fw-medium">+ {{ fin.cond_eq1.total_hora_extra | brl }}</td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% if fin.cond_eq1.plantoes %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Data do Plantão</th>
+          <th class="text-center">Remoções</th>
+          <th class="text-center">Min. Hora Extra</th>
+          <th class="text-end">Valor Hora Extra</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in fin.cond_eq1.plantoes %}
+        <tr {% if p.from_escala %}style="background:#f0fdf4;"{% endif %}>
+          <td>
+            {{ p.data_fmt }}
+            {% if p.from_escala %}
+            <span class="ms-1" style="display:inline-block; background:#dcfce7; color:#166534; border:1px solid #86efac; border-radius:4px; font-size:0.6rem; padding:1px 5px; vertical-align:middle;">escala</span>
+            {% endif %}
+          </td>
+          <td class="text-center">{{ p.num_remocoes }}</td>
+          <td class="text-center">
+            {% if p.min_extra > 0 %}
+              <span class="text-warning fw-medium">{{ p.min_extra | mins_to_hhmm }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if p.val_extra > 0 %}
+              <span class="text-warning fw-medium">{{ p.val_extra | brl }}</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- ─── Remoções Variáveis (Equipe 2/3/Extra) ─────────────────────────────── -->
+{% if fin.dias_extras %}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-truck me-2"></i>Remoções — Equipe 2 / 3 / Extra</span>
+    <span class="text-success fw-semibold">
+      {% if fin.especialidade == 'Condutor' and fin.total_sobreaviso > 0 %}
+        {{ (fin.total_extras + fin.total_sobreaviso) | brl }}
+      {% else %}
+        {{ fin.total_extras | brl }}
+      {% endif %}
+    </span>
+  </div>
+
+  {% for dia in fin.dias_extras %}
+  <div class="px-3 pt-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="fw-semibold" style="font-size:0.85rem; color:#0f172a;">
+        <i class="bi bi-calendar3 me-1 text-secondary"></i>{{ dia.data_fmt }}
+      </span>
+      <span style="font-size:0.82rem;">
+        {% if fin.especialidade == 'Médico' and dia.piso_comp > 0 %}
+          <span class="text-muted me-2">Bruto: {{ dia.total_bruto | brl }}</span>
+          <span class="badge bg-info-subtle text-info border border-info-subtle me-1">
+            Piso +{{ dia.piso_comp | brl }}
+          </span>
+        {% endif %}
+        {% if fin.especialidade == 'Condutor' and dia.sobreaviso > 0 %}
+          <span class="badge bg-warning-subtle text-warning border border-warning-subtle me-1">
+            Sobreaviso +{{ dia.sobreaviso | brl }}
+          </span>
+        {% endif %}
+        <span class="fw-bold text-success">Total: {{ dia.total_dia | brl }}</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:0.79rem;">
+      <thead>
+        <tr>
+          <th>Nº</th>
+          <th>Equipe</th>
+          <th>Origem</th>
+          <th>Destino</th>
+          {% if fin.especialidade == 'Condutor' %}
+          <th class="text-end">KM Total</th>
+          {% endif %}
+          <th class="text-end fw-semibold">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in dia.remocoes %}
+        {% set r = item.r %}
+        {% set c = item.calc %}
+        <tr>
+          <td>{{ r.numero_transporte or '—' }}</td>
+          <td>
+            <span class="badge-equipe">{{ item.equipe }}</span>
+          </td>
+          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">
+            {{ r.unidade_origem or '—' }}
+          </td>
+          <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">
+            {{ r.unidade_destino or '—' }}
+          </td>
+          {% if fin.especialidade == 'Condutor' %}
+          <td class="text-end">{{ (r.km_total or 0) | int }}</td>
+          {% endif %}
+          <td class="text-end fw-semibold text-success">{{ c.valor | brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not loop.last %}
+  <hr class="mx-3 my-0" style="border-color:#e2e8f0;">
+  {% endif %}
+  {% endfor %}
+
+  <!-- Rodapé total extras -->
+  <div class="px-3 py-2 d-flex justify-content-end" style="border-top:2px solid #e2e8f0; background:#f8fafc; border-radius:0 0 12px 12px;">
+    <span class="fw-bold" style="font-size:0.85rem;">
+      {% if fin.especialidade == 'Condutor' and fin.total_sobreaviso > 0 %}
+        Total Remoções + Sobreaviso:
+        <span class="text-success ms-2">{{ (fin.total_extras + fin.total_sobreaviso) | brl }}</span>
+      {% else %}
+        Total Remoções Extras:
+        <span class="text-success ms-2">{{ fin.total_extras | brl }}</span>
+      {% endif %}
+    </span>
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── Ajustes Manuais ────────────────────────────────────────────────────── -->
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center"
+       style="background:#166534; color:#fff;">
+    <span><i class="bi bi-sliders me-2"></i>Ajustes Manuais</span>
+    {% if fin.total_ajustes != 0 %}
+    <span class="fw-semibold">
+      {% if fin.total_ajustes > 0 %}+{% endif %}{{ fin.total_ajustes | brl }}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if fin.ajustes %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0" style="font-size:0.82rem;">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th class="text-end">Valor</th>
+          <th class="text-center" style="width:80px;">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for aj in fin.ajustes %}
+        <tr>
+          <td>{{ aj.descricao }}</td>
+          <td class="text-end fw-semibold {% if aj.valor >= 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if aj.valor >= 0 %}+{% endif %}{{ aj.valor | brl }}
+          </td>
+          <td class="text-center">
+            <form method="post"
+                  action="{{ url_for('financeiro.financeiro_ajuste_excluir', ajuste_id=aj.id) }}"
+                  onsubmit="return confirm('Excluir este ajuste?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="nome" value="{{ fin.nome }}">
+              <input type="hidden" name="mes"  value="{{ mes }}">
+              <input type="hidden" name="ano"  value="{{ ano }}">
+              <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="px-3 py-2 text-muted" style="font-size:0.85rem;">Nenhum ajuste registrado.</div>
+  {% endif %}
+
+  <!-- Formulário para adicionar ajuste -->
+  <div class="px-3 py-3" style="border-top:1px solid #e2e8f0; background:#f8fafc;">
+    <form method="post"
+          action="{{ url_for('financeiro.financeiro_ajuste_adicionar') }}"
+          class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="nome" value="{{ fin.nome }}">
+      <input type="hidden" name="mes"  value="{{ mes }}">
+      <input type="hidden" name="ano"  value="{{ ano }}">
+      <div class="col-md-6">
+        <label class="form-label mb-1" style="font-size:0.8rem;">Descrição</label>
+        <input type="text" name="descricao" class="form-control form-control-sm"
+               placeholder="Ex: Sobreaviso feriado" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1" style="font-size:0.8rem;">
+          Valor <span class="text-muted">(negativo = desconto)</span>
+        </label>
+        <input type="number" name="valor" step="0.01" class="form-control form-control-sm"
+               placeholder="Ex: 200 ou -150" required>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-sm w-100" style="background:#166534; color:#fff;">
+          <i class="bi bi-plus-circle me-1"></i>Adicionar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── Resumo Final ────────────────────────────────────────────────────────── -->
+<div class="card resumo-final-card">
+  <div class="card-header resumo-final-header">
+    <i class="bi bi-calculator me-2"></i>Resumo Final — {{ fin.nome }}
+  </div>
+  <div class="card-body">
+    <div class="row g-0">
+      {% if fin.especialidade in ('Médico', 'Enfermeiro') %}
+      <div class="col-md-6">
+        <table class="table table-sm mb-0" style="font-size:0.85rem;">
+          <tbody>
+            <tr>
+              <td class="text-muted">Valor plantões ({{ fin.num_plantoes }}× fixo)</td>
+              <td class="text-end">{{ fin.total_plantoes | brl }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Hora extra plantões</td>
+              <td class="text-end">{{ fin.total_hora_extra | brl }}</td>
+            </tr>
+            <tr>
+              <td class="text-muted">Remoções Equipe 2/3/Extra ({{ fin.num_extras }})</td>
+              <td class="text-end">{{ fin.total_extras | brl }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="col-md-6">
+        <table class="table table-sm mb-0" style="font-size:0.85rem;">
+          <tbody>
+            {% if fin.cond_eq1 %}
+            <tr>
+              <td class="text-muted">Salário base líquido (Equipe 1)</td>
+              <td class="text-end">{{ fin.cond_eq1.salario_base | brl }}</td>
+            </tr>
+            {% if fin.cond_eq1.total_hora_extra > 0 %}
+            <tr>
+              <td class="text-muted">Hora extra (Equipe 1)</td>
+              <td class="text-end">{{ fin.cond_eq1.total_hora_extra | brl }}</td>
+            </tr>
+            {% endif %}
+            {% endif %}
+            {% if fin.num_extras > 0 %}
+            <tr>
+              <td class="text-muted">Remoções Equipe 2/3/Extra ({{ fin.num_extras }})</td>
+              <td class="text-end">{{ fin.total_extras | brl }}</td>
+            </tr>
+            {% endif %}
+            {% if fin.total_sobreaviso > 0 %}
+            <tr>
+              <td class="text-muted">Sobreaviso ({{ fin.num_dias_sobreaviso }} dia{{ 's' if fin.num_dias_sobreaviso != 1 }})</td>
+              <td class="text-end">{{ fin.total_sobreaviso | brl }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <div class="col-md-6 d-flex align-items-center justify-content-end pe-3">
+        <div class="text-end">
+          <div class="text-muted" style="font-size:0.78rem;">TOTAL A RECEBER</div>
+          <div class="fw-bold text-success" style="font-size:2rem;">{{ fin.total_final | brl }}</div>
+          {% if fin.total_ajustes != 0 %}
+          <div style="font-size:0.75rem; color:#6b7280;">
+            Base: {{ fin.total | brl }} &nbsp;|&nbsp;
+            Ajustes: {% if fin.total_ajustes > 0 %}+{% endif %}{{ fin.total_ajustes | brl }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

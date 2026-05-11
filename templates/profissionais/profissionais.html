@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1>Profissionais</h1>
+    <p>Gerencie os profissionais cadastrados no sistema</p>
+  </div>
+  <a href="{{ url_for('profissionais.novo_profissional') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i> Novo Profissional
+  </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label mb-1">Especialidade</label>
+        <select name="especialidade" class="form-select form-select-sm" style="min-width:160px">
+          <option value="">Todas</option>
+          {% for e in especialidades %}
+          <option value="{{ e }}" {% if filtro_esp == e %}selected{% endif %}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <label class="form-label mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Todos</option>
+          <option value="Ativo" {% if filtro_status == 'Ativo' %}selected{% endif %}>Ativo</option>
+          <option value="Inativo" {% if filtro_status == 'Inativo' %}selected{% endif %}>Inativo</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Filtrar
+        </button>
+        <a href="{{ url_for('profissionais.profissionais') }}" class="btn btn-outline-secondary btn-sm ms-1">Limpar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Tabela -->
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people-fill me-2"></i>Profissionais Cadastrados</span>
+    <span class="text-muted" style="font-size:0.8rem;font-weight:400">{{ profissionais|length }} registro(s)</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Especialidade</th>
+            <th>Conselho</th>
+            <th>Telefone</th>
+            <th>Banco / Ag / Conta</th>
+            <th>Chave PIX</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if not profissionais %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">Nenhum profissional encontrado.</td>
+          </tr>
+          {% else %}
+            {% set cores = {'Médico': 'primary', 'Enfermeiro': 'success', 'Condutor': 'warning', 'Recepcionista': 'info'} %}
+            {% set icones = {'Médico': 'heart-pulse', 'Enfermeiro': 'bandaid', 'Condutor': 'truck', 'Recepcionista': 'headset'} %}
+            {% for esp in ['Médico', 'Enfermeiro', 'Condutor', 'Recepcionista'] %}
+              {% set grupo = profissionais | selectattr('especialidade', 'equalto', esp) | list %}
+              {% if grupo %}
+              <tr class="table-light">
+                <td colspan="9" class="py-2 ps-3 fw-semibold" style="font-size:0.78rem;letter-spacing:.04em;text-transform:uppercase;color:var(--bs-{{ cores.get(esp, 'secondary') }});">
+                  <i class="bi bi-{{ icones.get(esp, 'person') }} me-1"></i>{{ esp }}
+                  <span class="badge bg-{{ cores.get(esp, 'secondary') }} bg-opacity-10 text-{{ cores.get(esp, 'secondary') }} border border-{{ cores.get(esp, 'secondary') }}-subtle ms-2" style="font-size:0.7rem;">{{ grupo|length }}</span>
+                </td>
+              </tr>
+              {% for p in grupo %}
+              <tr>
+                <td class="fw-500">{{ p.nome }}</td>
+                <td>{{ p.cpf or '—' }}</td>
+                <td>
+                  <span class="badge bg-{{ cores.get(p.especialidade, 'secondary') }} bg-opacity-10 text-{{ cores.get(p.especialidade, 'secondary') }}" style="font-size:0.75rem;font-weight:600;padding:3px 8px;border-radius:6px;">
+                    {{ p.especialidade }}
+                  </span>
+                </td>
+                <td>{{ p.numero_conselho or '—' }}</td>
+                <td>{{ p.telefone or '—' }}</td>
+                <td>
+                  {% if p.banco %}
+                    <span>{{ p.banco }}</span>
+                    {% if p.agencia %} / {{ p.agencia }}{% endif %}
+                    {% if p.conta %} / {{ p.conta }}{% endif %}
+                  {% else %}—{% endif %}
+                </td>
+                <td>{{ p.chave_pix or '—' }}</td>
+                <td>
+                  {% if p.status == 'Ativo' %}
+                    <span class="badge bg-success bg-opacity-10 text-success" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;">Ativo</span>
+                  {% else %}
+                    <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.75rem;padding:3px 8px;border-radius:6px;">Inativo</span>
+                  {% endif %}
+                </td>
+                <td class="text-end" style="white-space:nowrap">
+                  <a href="{{ url_for('profissionais.editar_profissional', id=p.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2 me-1">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="post" action="{{ url_for('profissionais.toggle_profissional', id=p.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm py-0 px-2 {% if p.status == 'Ativo' %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                            title="{% if p.status == 'Ativo' %}Inativar{% else %}Ativar{% endif %}">
+                      <i class="bi bi-{% if p.status == 'Ativo' %}pause-circle{% else %}play-circle{% endif %}"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

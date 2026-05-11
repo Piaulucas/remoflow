@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-lock me-2"></i>Alterar Senha</h1>
+  <p>Defina uma nova senha para sua conta</p>
+</div>
+
+<div class="card" style="max-width:440px;">
+  <div class="card-body">
+
+    {% if sucesso %}
+    <div class="alert alert-success py-2 mb-4">
+      <i class="bi bi-check-circle-fill me-1"></i>Senha alterada com sucesso!
+    </div>
+    {% endif %}
+
+    {% if erro %}
+    <div class="alert alert-danger py-2 mb-4">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ erro }}
+    </div>
+    {% endif %}
+
+    <form method="post" id="formAlterarSenha">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label">Senha atual <span class="text-danger">*</span></label>
+        <input type="password" name="senha_atual" class="form-control"
+               placeholder="••••••" required autofocus>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nova senha <span class="text-danger">*</span></label>
+        <input type="password" name="nova_senha" id="nova_senha" class="form-control"
+               placeholder="Mínimo 6 caracteres" required minlength="6">
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Confirmar nova senha <span class="text-danger">*</span></label>
+        <input type="password" name="confirmar_senha" id="confirmar_senha" class="form-control"
+               placeholder="Repita a nova senha" required minlength="6">
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('remocoes.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary px-4">
+          <i class="bi bi-check-lg me-1"></i>Salvar nova senha
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('formAlterarSenha').addEventListener('submit', function(e) {
+    const nova = document.getElementById('nova_senha').value;
+    const conf = document.getElementById('confirmar_senha').value;
+    if (nova.length < 6) {
+      e.preventDefault();
+      alert('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (nova !== conf) {
+      e.preventDefault();
+      alert('As senhas não coincidem.');
+    }
+  });
+</script>
+{% endblock %}

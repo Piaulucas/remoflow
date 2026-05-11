@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start">
+  <div>
+    <h1><i class="bi bi-receipt me-2"></i>Faturamento</h1>
+    <p>Geração de planilha de faturamento mensal SESAB</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {% if grupos %}
+    <a href="{{ url_for('faturamento.faturamento_excel', mes=mes, ano=ano) }}" class="btn btn-success">
+      <i class="bi bi-file-earmark-excel me-1"></i> Gerar Excel
+    </a>
+    {% endif %}
+    {% if mes and ano %}
+    <a href="{{ url_for('faturamento.faturamento_debug', mes=mes, ano=ano) }}"
+       class="btn btn-sm btn-outline-secondary"
+       title="Diagnóstico de cálculo remoção a remoção">
+      <i class="bi bi-bug me-1"></i>Debug
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Seletor de mês/ano -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Mês</label>
+        <select name="mes" class="form-select">
+          {% for n, nome in meses_lista %}
+          <option value="{{ n }}" {% if mes == n %}selected{% endif %}>{{ nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Ano</label>
+        <input type="number" name="ano" class="form-control"
+               value="{{ ano or ano_atual }}" min="2020" max="2099">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-search me-1"></i>Visualizar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if mes and ano %}
+<div class="row g-3 mb-4">
+  {% if glosa %}
+  {% set taxa_glosa = (glosa.valor_glosado / glosa.valor_apresentado * 100) if glosa.valor_apresentado else 0 %}
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="value" style="font-size:1.4rem;">
+            {% if taxa_glosa < 5 %}
+            <span class="badge bg-success fs-6">{{ "%.2f"|format(taxa_glosa) }}%</span>
+            {% elif taxa_glosa <= 10 %}
+            <span class="badge bg-warning text-dark fs-6">{{ "%.2f"|format(taxa_glosa) }}%</span>
+            {% else %}
+            <span class="badge bg-danger fs-6">{{ "%.2f"|format(taxa_glosa) }}%</span>
+            {% endif %}
+          </div>
+          <div class="label">Taxa de glosa — {{ glosa.competencia }}</div>
+        </div>
+        <div class="icon red"><i class="bi bi-slash-circle"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="value" style="font-size:1.3rem;">{{ glosa.valor_recurso_acatado | brl }}</div>
+          <div class="label">Valor recuperado — {{ glosa.competencia }}</div>
+        </div>
+        <div class="icon green"><i class="bi bi-arrow-repeat"></i></div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="alert alert-light border d-flex align-items-center gap-3 mb-0">
+      <i class="bi bi-slash-circle text-muted fs-5"></i>
+      <span>Sem glosa registrada para <strong>{{ "%02d"|format(mes) }}/{{ ano }}</strong>.</span>
+      {% set _perfil = session.get('perfil_visualizacao', session.get('usuario_perfil', '')) %}
+      {% if _perfil in ['Faturamento', 'Admin', 'SuperAdmin'] %}
+      <a href="{{ url_for('glosas.nova_glosa') }}" class="ms-auto btn btn-sm btn-outline-primary">
+        <i class="bi bi-plus-circle me-1"></i>Registrar glosa
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if grupos %}
+
+<ul class="nav nav-tabs mb-0" id="grupoTabs" role="tablist">
+  {% for grupo_nome in grupos %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if loop.first %}active{% endif %}"
+            data-bs-toggle="tab" data-bs-target="#tab-{{ loop.index }}"
+            type="button" role="tab">
+      {{ grupo_nome }}
+      <span class="badge bg-secondary ms-1">{{ grupos[grupo_nome]|length }}</span>
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<div class="tab-content" id="grupoTabContent">
+  {% for grupo_nome, items in grupos.items() %}
+
+  {% set tot = namespace(v=0) %}
+  {% for item in items %}{% set tot.v = tot.v + item.calc.valor_total %}{% endfor %}
+
+  <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+       id="tab-{{ loop.index }}" role="tabpanel">
+    <div class="card" style="border-radius: 0 0 12px 12px;">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>{{ grupo_nome }}</strong> — {{ mes_nome }} / {{ ano }}</span>
+        <span class="text-success fw-semibold">Total: {{ tot.v | brl }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" style="font-size: 0.77rem;">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Data</th>
+              <th>Paciente</th>
+              <th>Idade</th>
+              <th>Origem</th>
+              <th>Destino</th>
+              <th>H. Saída</th>
+              <th>H. Retorno</th>
+              <th>T. Total</th>
+              <th>T. Exc.</th>
+              <th class="text-end">KM Ini.</th>
+              <th class="text-end">KM Fin.</th>
+              <th class="text-end">KM Total</th>
+              <th class="text-end">KM Exc.</th>
+              <th class="text-end">Vl. Serviço</th>
+              <th class="text-end">Vl. Hora Exc.</th>
+              <th class="text-end">Vl. KM Exc.</th>
+              <th class="text-end fw-semibold">Vl. Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+            {% set r = item.r %}
+            {% set c = item.calc %}
+            <tr>
+              <td>{{ r.numero_transporte or '' }}</td>
+              <td>{{ r.data | databr }}</td>
+              <td>{{ r.nome_paciente or '' }}</td>
+              <td>{{ r.idade_fmt }}</td>
+              <td>{{ r.unidade_origem or '' }}</td>
+              <td>{{ r.unidade_destino or '' }}</td>
+              <td>{{ r.hora_saida or '' }}</td>
+              <td>{{ r.hora_retorno or '' }}</td>
+              <td>{{ r.tempo_total or '—' }}</td>
+              <td>{{ c.tempo_exc }}</td>
+              <td class="text-end">{{ (r.km_inicial or 0)|int }}</td>
+              <td class="text-end">{{ (r.km_final or 0)|int }}</td>
+              <td class="text-end">{{ (r.km_total or 0)|int }}</td>
+              <td class="text-end">{{ c.km_exc|int }}</td>
+              <td class="text-end">{{ c.valor_servico | brl }}</td>
+              <td class="text-end">{{ c.valor_hora_exc | brl }}</td>
+              <td class="text-end">{{ c.valor_km_exc | brl }}</td>
+              <td class="text-end fw-semibold text-success">{{ c.valor_total | brl }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr class="table-active">
+              <td colspan="17" class="text-end fw-bold">Valor Total (R$)</td>
+              <td class="text-end fw-bold text-success">{{ tot.v | brl }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% endfor %}
+</div>
+
+{% elif mes %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-2"></i>
+  Nenhuma remoção encontrada para <strong>{{ mes_nome }} / {{ ano }}</strong>.
+</div>
+{% endif %}
+
+{% endblock %}
